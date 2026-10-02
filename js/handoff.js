@@ -26,6 +26,16 @@
  *             head then turns its pinhole loader (is-loading) into html.is-back: the night stays up until the section
  *             is landed (after the pins are measured), then lifts, the blur racking out behind it. Other visits keep
  *             the loader.
+ *   bleed     (round 7, Werner: "when reloading the page and changing the color scheme can you use the same interaction
+ *             as when loading the project pages, full color bleed (of the new color) instead of the percentage loader")
+ *             the homepage's visits that would have played the pinhole loader (is-loading, no return): the new scheme's
+ *             light irises open from its dot in the eyebrow (the one ⌘R just lit) to the whole viewport, painted like a
+ *             card's disc (650ms, the iris curve), inside a cover that is the night itself from the first paint
+ *             (Werner: "the colors on the page already change before the animation starts": nothing of the new
+ *             scheme shows until its light does). It holds a beat (and while the page loads); js/motion.js waits for
+ *             it (window.FS_BLEED.opened) and for the hero's assets, then the light fades out (FS_BLEED.out, 1100ms,
+ *             Werner: "a nice fade out effect after the full screen bleed"): a soft dissolve that starts at the
+ *             portrait and spreads to the edges, while the hero comes into focus under it. No percentage, no pinhole.
  *   bfcache   pageshow with persisted: no cover, veil, ghost, arriving, loading or back state survives the Back button.
  *   still     ?static=1 and reduced motion: nothing is intercepted, the links just go (the back flag is still set; the
  *             homepage has no loader to skip there, and its own anchor lands the section).
@@ -46,7 +56,7 @@
   const d = document, html = d.documentElement, cl = html.classList, W = window;
   const KEY = 'fs.handoff', BACK = 'fs.back', FRESH = 4000, BACK_FRESH = 8000;
     /* IN: the arrival's dissolve, long enough for the device and the headline's first words to focus in under it */
-  const OUT = 650, IN = 760, VEIL = 300;
+  const OUT = 650, IN = 760, VEIL = 300, HOLD = 260;   /* HOLD: the bleed's full-screen beat before it fades */
   const onWork = !!(W.WORK && W.WORK.projects);
   const ss = (() => { try { return W.sessionStorage; } catch (e) { return null; } })();
   const get = (k) => { try { return ss ? ss.getItem(k) : null; } catch (e) { return null; } };
@@ -112,13 +122,29 @@
       html.appendChild(veil); early.push(veil);
       setTimeout(() => { if (cl.contains('is-back')) lift(); }, 3500);
     }
+    /* any other visit that would play the loader: the bleed. Its cover is up from the first paint, clipped to nothing
+       (the night shows, as the pinhole's first frame did), and opens once the page is laid out (boot) */
+    if (cl.contains('is-loading')) {
+      cl.add('is-bleed'); note('bleed');
+      /* the cover is the night, opaque (its own background); only its light is clipped, so the page in the new
+         scheme stays hidden until the light has opened over it */
+      cover = layer('ho-cover ho-cover--bleed is-on', SKY);
+      lightOf(cover).style.clipPath = 'circle(0px at 50% 50%)';
+      html.appendChild(cover); early.push(cover);
+      let opened = null;
+      W.FS_BLEED = { opened: new Promise((r) => { opened = r; }), out: bleedOut };
+      W.FS_BLEED.open = () => opened();
+      /* scripts that never arrive: the night comes back by itself (before the flags' 7s loader bail); once
+         js/motion.js has taken the bleed over (claimed) its own failsafe runs it instead */
+      setTimeout(() => { if (cl.contains('is-bleed') && !W.FS_BLEED.claimed) bleedOut(0); }, 6500);
+    }
   }
 
   /* ── 2 · wiring, once the core boots ─────────────────────────────────────────────────────────────────────── */
   d.addEventListener('DOMContentLoaded', () => {
     early.forEach((el) => d.body.appendChild(el));
     const FS = W.FS;
-    if (!FS || !FS.on) { if (cl.contains('is-arriving')) bail(); if (cl.contains('is-back')) lift(); return; }
+    if (!FS || !FS.on) { if (cl.contains('is-arriving')) bail(); if (cl.contains('is-back')) lift(); if (cl.contains('is-bleed')) bleedOut(0); return; }
     FS.on('boot', boot);
   });
   function boot() {
@@ -129,11 +155,12 @@
     note('boot');
     if (onWork) { if (cl.contains('is-arriving')) Promise.resolve(W.WORK.ready).then(() => { note('ready'); arrive(); }, bail); }
     else if (cl.contains('is-back')) land();
+    else if (cl.contains('is-bleed')) bleedOpen();
     W.__fs = Object.assign(W.__fs || {}, { handoff: { state, reset } });
   }
   const state = () => ({ busy, gone, arriving, motion, cover: !!(cover && cover.classList.contains('is-on')),
     veil: !!(veil && veil.classList.contains('is-on')), ghost: !!ghostEl,
-    classes: ['is-arriving', 'is-back', 'is-loading', 'hero-pre'].filter((c) => cl.contains(c)),
+    classes: ['is-arriving', 'is-back', 'is-bleed', 'is-loading', 'hero-pre'].filter((c) => cl.contains(c)),
     handoff: get(KEY), back: get(BACK), log: log.slice() });
 
   /* ── 3 · clicks (capture, so a card's own forwarder never sees the ones taken here) ───────────────────────── */
@@ -416,6 +443,61 @@
     if (was && pill && FS && FS.reveal) FS.reveal.focus([pill], { blur: 8, dur: 420, delay: 140 });
   }
 
+  /* ── 6b · bleed (round 7): the new scheme's light opens from its dot to the whole viewport, then dissolves ─────
+     It is painted like a card's disc grown (the scheme's sky at the page's drift, its key and fill in the circle's own
+     square, the project hues left at their defaults: the scheme's iris and glacier), so it is the same light the
+     project pages arrive in. It opens from the lit dot in the hero's eyebrow, the scheme ⌘R just moved to (hidden
+     under is-loading, but laid out), or from the centre where the eyebrow is out of view. */
+  function bleedOpen() {
+    const FS = W.FS, E = FS && FS.ease, B = W.FS_BLEED, cv = cover;
+    if (!B) return;
+    if (!cv || !E || !FS.driftPx) { B.open(); return; }
+    hold();
+    const vw = html.clientWidth, vh = innerHeight, dot = d.querySelector('.hero-eyebrow .eb-dots i.is-on');
+    const b = dot && dot.getBoundingClientRect(), seen = b && b.width > 0 && b.bottom > 0 && b.top < vh;
+    const cx = seen ? b.left + b.width / 2 : vw / 2, cy = seen ? b.top + b.height / 2 : vh / 2, r0 = seen ? b.width / 2 : 0;
+    const rMax = Math.hypot(Math.max(cx, vw - cx), Math.max(cy, vh - cy)) + 2;
+    const lt = lightOf(cv);
+    const draw = (t) => {
+      const r = lerp(r0, rMax, E.iris(t)), sky = FS.driftPx(performance.now());
+      paint(lt, cx, cy, r, r / .92, sky.x, sky.y);
+    };
+    draw(0);
+    note('open ' + (seen ? 'dot' : 'centre'));
+    /* open, then the full-screen light holds a beat before it may go (the bleed reads as one, not a flash) */
+    anim = run(OUT * slow(), draw, () => {
+      anim = null; note('bled');
+      lt.style.clipPath = 'none';
+      setTimeout(() => B.open(), HOLD * slow());
+    });
+  }
+  /* the fade out: a soft-edged hole opens in the cover at the portrait (the hero's aperture, where the eye lands) and
+     spreads past the farthest corner, its edge a wide feather (80% of that distance), while the whole light dims from a
+     quarter of the way in, so it reads as the light fading from the middle outwards, not a hole cut through it. The cover's own mask, written per
+     frame on the run() clock; ms 0 takes it away at once (a skip, a bail). */
+  function bleedOut(ms, done) {
+    if (anim) { anim.kill(); anim = null; }
+    if (W.FS_BLEED && W.FS_BLEED.open) W.FS_BLEED.open();
+    const cv = cover, E = W.FS && W.FS.ease;
+    const end = () => { cl.remove('is-bleed'); note('bleed out'); release(); if (done) done(); };
+    if (!ms || !cv || !E || !cv.classList.contains('is-on')) { fadeCover(0, end); return; }
+    /* the aperture's own circle (HOME.aperture, viewport px; the portrait link's box is the whole hero) */
+    const vw = html.clientWidth, vh = innerHeight, A = W.HOME && W.HOME.aperture;
+    const seen = A && A.r > 1 && A.cy > 0 && A.cy < vh;
+    const cx = seen ? A.cx : vw / 2, cy = seen ? A.cy : vh / 2;
+    const far = Math.hypot(Math.max(cx, vw - cx), Math.max(cy, vh - cy)), F = .8 * far;
+    const st = cv.style;
+    const draw = (t) => {
+      const r = lerp(-F, far, E.smoothstep(0, 1, t));
+      const m = `radial-gradient(circle at ${cx.toFixed(1)}px ${cy.toFixed(1)}px,#0000 ${Math.max(0, r).toFixed(1)}px,#000 ${Math.max(0, r + F).toFixed(1)}px)`;
+      st.webkitMaskImage = m; st.maskImage = m;
+      st.opacity = t < .25 ? '' : (1 - E.smoothstep(.25, 1, t)).toFixed(3);
+    };
+    draw(0);
+    note('fade ' + (seen ? 'portrait' : 'centre'));
+    anim = run(ms * slow(), draw, () => { anim = null; fadeCover(0, end); });
+  }
+
   /* ── 7 · the layers and their painter ──────────────────────────────────────────────────────────────────────── */
   function coverEl() {
     if (!cover) { cover = layer('ho-cover', SKY); d.body.appendChild(cover); }
@@ -443,9 +525,11 @@
     const end = () => {
       if (fadeAnim) { fadeAnim.cancel(); fadeAnim = null; }
       if (cv) {
-        cv.classList.remove('is-on');
-        ['clip-path', 'opacity', 'will-change', '--bx', '--by', '--bw', '--bh', '--hx', '--hy'].forEach((k) => cv.style.removeProperty(k));
-        if (lightOf(cv)) lightOf(cv).style.opacity = '';
+        cv.classList.remove('is-on', 'ho-cover--bleed');
+        ['clip-path', 'opacity', 'will-change', 'mask-image', '-webkit-mask-image', '--bx', '--by', '--bw', '--bh', '--hx', '--hy'].forEach((k) => cv.style.removeProperty(k));
+        /* the bleed painted its light, not the cover: a card's leave reuses this cover, unclipped */
+        const lt = lightOf(cv);
+        if (lt) ['opacity', 'clip-path', '--bx', '--by', '--bw', '--bh', '--hx', '--hy'].forEach((k) => lt.style.removeProperty(k));
       }
       if (done) done();
     };
@@ -479,12 +563,14 @@
     if (FS && FS.cursor && FS.cursor.enabled && FS.cursor.retarget) FS.cursor.retarget();
   }
   /* a tween on rAF and the core's curves (no GSAP: the handoff must work even where the CDN did not) */
+  /* the clock starts on the first frame, not at the call: a call made in a heavy frame (the homepage's boot) would
+     otherwise spend the opening's first 50–100ms before anything is drawn and then jump */
   function run(ms, fn, done) {
-    const t0 = performance.now();
-    let raf = 0, dead = false, n = 0, prev = 0, gap = 0, at = 0;
+    let t0 = 0, raf = 0, dead = false, n = 0, prev = 0, gap = 0, at = 0;
     const step = (now) => {
       raf = 0;
       if (dead) return;
+      if (!t0) t0 = now;
       const t = Math.min(1, Math.max(0, (now - t0) / ms));
       if (prev && now - prev > gap) { gap = now - prev; at = t; }
       prev = now; n++;
@@ -517,7 +603,7 @@
     if (veil && veil.classList.contains('is-on')) { veil.classList.add('is-lift'); veil.classList.remove('is-on'); }
     /* the Next band's leave: the header and the band's parts come back (js/work.js restores the field and its clip) */
     if (head) { head.style.opacity = ''; head = null; }
-    cl.remove('is-arriving', 'is-back', 'is-leaving');
+    cl.remove('is-arriving', 'is-back', 'is-leaving', 'is-bleed');
     const HOME = W.HOME;
     if (HOME && HOME.loader && !HOME.loader.done && HOME.loader.skip) { try { HOME.loader.skip(); } catch (e) {} }
     cl.remove('is-loading');

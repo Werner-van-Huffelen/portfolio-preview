@@ -13,11 +13,11 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Funnel+Display:wght@300..800&family=Funnel+Sans:ital,wght@0,300..800;1,300..800&family=Fragment+Mono&display=swap">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lenis@1.3.26/dist/lenis.css">
 <!-- ?v=: bump on every change, so a plain reload never runs a cached script against new markup -->
-<link rel="stylesheet" href="css/system.css?v=r6b">
-<link rel="stylesheet" href="css/home.css?v=r6f">
-<link rel="stylesheet" href="css/handoff.css?v=r6b">
+<link rel="stylesheet" href="css/system.css?v=r7g">
+<link rel="stylesheet" href="css/home.css?v=r7g">
+<link rel="stylesheet" href="css/handoff.css?v=r7g">
 <!-- the scheme (round 4): picked before the first paint, shared with work.html (round 5 moved it into js/scheme.js) -->
-<script src="js/scheme.js?v=r6b"></script>
+<script src="js/scheme.js?v=r7g"></script>
 <script>
   /* the portrait is black and white in every scheme (round 4b): its two layers are preloaded here, homepage only */
   (function(d){
@@ -33,7 +33,7 @@
     /* ?hero=a: the refinement's first hero (smaller headline, portrait 78svh) kept for Werner's A/B */
     if(/[?&]hero=a(&|$)/.test(q))c.add('hero-a');
     try{if(matchMedia('(prefers-reduced-motion: reduce)').matches)c.add('is-reduced');}catch(e){}
-    /* the loader is the hero's own aperture (js/motion.js); this guard lifts it if scripts never arrive */
+    /* the loader (round 7: the bleed, js/handoff.js + js/motion.js); this guard lifts it if scripts never arrive */
     if(!c.contains('is-static')&&!c.contains('menu-open')&&!c.contains('is-reduced')){c.add('is-loading');
       setTimeout(function(){if(c.contains('is-loading')){c.remove('is-loading');c.add('loader-bailed');}},7000);}
     c.add('marquee-js','disc-js');
@@ -41,14 +41,14 @@
 </script>
 <!-- round 5, the iris to the work pages and back: a return from one (sessionStorage fs.back) turns the loader above
      into html.is-back, which lands its section instead; shared with work.html -->
-<script src="js/handoff.js?v=r6b"></script>
+<script src="js/handoff.js?v=r7g"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/ScrollTrigger.min.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/lenis@1.3.26/dist/lenis.min.js"></script>
 <script defer src="assets/logos/logos.js"></script>
-<script defer src="js/system.js?v=r6b"></script>
-<script defer src="js/home.js?v=r6b"></script>
-<script defer src="js/motion.js?v=r6c"></script>
+<script defer src="js/system.js?v=r7g"></script>
+<script defer src="js/home.js?v=r7g"></script>
+<script defer src="js/motion.js?v=r7g"></script>
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -267,14 +267,14 @@
     </div>
 
     <div class="wcol wcol--offset">
-      <!-- 02 · Bandcamp: never a link -->
-      <article class="work-card card on-night is-quest" data-tone="night" data-kind="shots" data-lit="track" style="--h1:var(--orchid);--h2:var(--iris);--ax:72%;--ay:26%">
-        <div class="wc-media" data-lens="media" data-src="assets/bandcamp-night.svg" data-ring="SIDE QUEST · JUST FOR FUN · ">
+      <!-- 02 · Bandcamp (round 7: Werner's own player shots, and its own page) -->
+      <article class="work-card card on-night" data-tone="night" data-kind="shots" data-lit="track" style="--h1:var(--orchid);--h2:var(--iris);--ax:72%;--ay:26%">
+        <div class="wc-media" data-lens="media" data-src="assets/bandcamp.webp" data-ring="SIDE QUEST · BANDCAMP · ">
           <div class="wc-zoom">
             <i class="wc-ap lit" aria-hidden="true"></i>
-            <i class="wc-halo" style="-webkit-mask-image:url(assets/bandcamp-halo.png);mask-image:url(assets/bandcamp-halo.png)"></i>
-            <img class="wc-soft" src="assets/bandcamp-night-soft.svg" alt="" width="882" height="650" loading="lazy" decoding="async">
-            <img class="wc-sharp" src="assets/bandcamp-night.svg" alt="Music player card for Bandcamp" width="882" height="650" loading="lazy" decoding="async" data-loupe>
+            <i class="wc-halo" style="-webkit-mask-image:url(assets/work/bandcamp-halo.png);mask-image:url(assets/work/bandcamp-halo.png)"></i>
+            <img class="wc-soft" src="assets/bandcamp-soft-moon.webp" alt="" width="800" height="894" loading="lazy" decoding="async">
+            <img class="wc-sharp" src="assets/bandcamp.webp" alt="The Bandcamp player's Collection and Discovery panels" width="1600" height="1787" loading="lazy" decoding="async" data-loupe>
           </div>
         </div>
         <i class="tear tear--h"></i>
@@ -283,8 +283,7 @@
           <p class="wc-name">Bandcamp</p>
           <h3 class="wc-title">Music player for Bandcamp<span class="stop">.</span></h3>
         </div>
-        <i class="wc-quest lit" aria-hidden="true"></i>
-        <span class="wc-soon" aria-hidden="true">Side quest</span>
+        <a class="wc-btn glass g-m" href="work.html?p=bandcamp" aria-label="Bandcamp, side quest"><i class="b-light lit"></i><svg class="arr" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h17M14 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
       </article>
       <!-- 04 -->
       <article class="work-card card on-night" data-tone="night" data-kind="case" data-lit="track" style="--h1:var(--iris);--h2:var(--glacier);--ax:74%;--ay:72%">

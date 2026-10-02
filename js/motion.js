@@ -1,7 +1,8 @@
 /* Full Stop · stage 2: motion and signature moments
  * Fills the HOME.stage2.* hooks that js/home.js calls once at boot (in insertion order):
  *   portrait   depth parallax (raw WebGL, <img> fallback) + focus pull (soft → sharp)
- *   loader     §8.1 the pinhole is the hero: real progress, detents, FLIP to rest, failsafe, skip
+ *   loader     §8.1 the pinhole is the hero: real progress, detents, FLIP to rest, failsafe, skip; round 7: the bleed
+ *              (js/handoff.js) takes its place: the scheme's light fills the screen, the hero waits at rest under it
  *   stopDown   §7 hero pin + scrub: Werner ends up inside the full stop of "shipped."
  *   manifesto  §7 pull focus: 11 words, scroll blur min'd with the cursor lens
  *   irises     §3.8 exactly four: bio card, work, companies, footer (+ bio line reveal)
@@ -170,16 +171,28 @@
       if (F.reduced && hero && hero.animate) hero.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 400, easing: 'linear' });
       L.done = true; return;
     }
-    if (!window.gsap) { html.classList.remove('is-loading'); H.mode = 'rest'; HOME.renderHero(); L.done = true; return; }
+    if (!window.gsap) { if (window.FS_BLEED) window.FS_BLEED.out(0); html.classList.remove('is-loading'); H.mode = 'rest'; HOME.renderHero(); L.done = true; return; }
     const gsap = G();
     try { history.scrollRestoration = 'manual'; } catch (e) {}
     scrollTo(0, 0);
     if (window.lenis) { window.lenis.scrollTo(0, { immediate: true, force: true }); window.lenis.stop(); }
 
+    /* round 7, the bleed (js/handoff.js): the new scheme's light is opening over the page, so there is no pinhole and
+       no readout. The hero is at rest under the light, out of focus, its words and chrome hidden (is-loading); once
+       the light is open and the same real progress is in, the light dissolves (FS_BLEED.out) and the timeline below
+       runs without its FLIP: the focus pull, the ring, the words, the counter, the chrome, the final stop */
+    const B = window.FS_BLEED;                         /* even if its light already went (a bail): no pinhole then */
+    if (B) B.claimed = true;
+    if (B) { H.mode = 'rest'; if (HOME.setFocus) HOME.setFocus(0); HOME.renderHero(); }
+    let opened = !B, armed = false, tl = null;           /* armed: set up below; a progress signal can come in sync */
+    if (B) B.opened.then(() => { opened = true; ready(); });
+
     const STEPS = [22, 16, 11, 8, 5.6, 4, 2.8, 2, 1.4];
     const W = { fonts: .30, soft: .20, moon: .20, field: .20, load: .10 };
     const got = {}; let progress = 0;
-    const add = (k) => { if (got[k]) return; got[k] = 1; progress = Math.min(1, progress + W[k]); };
+    const add = (k) => { if (got[k]) return; got[k] = 1; progress = Math.min(1, progress + W[k]); ready(); };
+    /* the bleed goes on once its light is open and everything is in */
+    function ready() { if (B && armed && opened && !tl && !L.done && progress >= 1 - 1e-6) start(); }
     L.set = (p) => { progress = clamp(p, 0, 1); };
 
     /* real progress */
@@ -199,28 +212,31 @@
     const failsafe = setTimeout(() => {
       if (L.done) return;
       progress = 1;
-      if (!tl) { step = 8; showPct(100); start(); }
+      if (B) { if (!opened) B.out(0); ready(); }                 /* the light never opened: it goes, the hero comes in */
+      else if (!tl) { step = 8; showPct(100); start(); }
       if (tl) tl.timeScale(2.5);
     }, 4000);
 
     /* the readout beside the pinhole: a plain percentage that follows the detents (step / 8), counting up quickly */
-    const rd = document.createElement('div');
-    rd.className = 'ld-read'; rd.setAttribute('aria-hidden', 'true');
-    rd.innerHTML = '<span class="roll"><span>0%</span></span>';
-    document.body.appendChild(rd);
-    const pctEl = rd.querySelector('.roll > span');
+    const rd = B ? null : document.createElement('div');
+    if (rd) {
+      rd.className = 'ld-read'; rd.setAttribute('aria-hidden', 'true');
+      rd.innerHTML = '<span class="roll"><span>0%</span></span>';
+      document.body.appendChild(rd);
+    }
+    const pctEl = rd && rd.querySelector('.roll > span');
     let pct = 0, pctShown = 0;
-    function showPct(v) { pct = v; const n = Math.round(v); if (n !== pctShown) { pctShown = n; pctEl.textContent = n + '%'; } }
+    function showPct(v) { pct = v; const n = Math.round(v); if (pctEl && n !== pctShown) { pctShown = n; pctEl.textContent = n + '%'; } }
 
     /* detents: advance when real progress allows and 110 ms have passed; the diameter springs */
     const dia = FS.spring({ value: 2, response: .28, damping: 1 });
-    let step = 0, lastStep = performance.now(), raf = 0, prev = 0, tl = null;
+    let step = 0, lastStep = performance.now(), raf = 0, prev = 0;
     const vmin = () => Math.min(innerWidth, innerHeight);
     const targetD = (n) => Math.max(2, .36 * vmin() * Math.pow(1.4 / n, 2));
     function place() {
       H.lc = { cx: innerWidth / 2, cy: innerHeight / 2, r: Math.max(1, dia.value / 2) };
       HOME.renderHero();
-      rd.style.transform = `translate(${(H.lc.cx + H.lc.r + 16).toFixed(1)}px, ${(H.lc.cy - 7).toFixed(1)}px)`;
+      if (rd) rd.style.transform = `translate(${(H.lc.cx + H.lc.r + 16).toFixed(1)}px, ${(H.lc.cy - 7).toFixed(1)}px)`;
     }
     function frame(now) {
       raf = 0;
@@ -232,14 +248,15 @@
       if (step === 8 && now - lastStep >= 120) { start(); return; }
       raf = requestAnimationFrame(frame);
     }
-    place(); raf = requestAnimationFrame(frame);
+    if (!B) { place(); raf = requestAnimationFrame(frame); }
+    armed = true; ready();
 
     /* T: FLIP to the rest, focus pulls, ring, words, counter, chrome, the final stop */
     function start() {
       if (tl) return tl;
       cancelAnimationFrame(raf); raf = 0;
       showPct(100);
-      H.from = { cx: H.lc.cx, cy: H.lc.cy, r: H.lc.r }; H.flip = 0; H.mode = 'flip';
+      if (!B) { H.from = { cx: H.lc.cx, cy: H.lc.cy, r: H.lc.r }; H.flip = 0; H.mode = 'flip'; }
       const f = { v: 0 };
       const words = $$('.hero-title:not(.ink):not(.knock) .w'), ink = $$('.hero-title.ink .w'), knock = $$('.hero-title.knock .w');
       const chrome = [$('.hero-eyebrow'), ...$$('.hero-sub'), $('.site-header .brand'), $('.site-header .f-pill'), $('.site-header .nav-r')].filter(Boolean);
@@ -250,9 +267,10 @@
       const keepO = { immediateRender: false, clearProps: 'filter',
         onComplete() { if (!html.classList.contains('is-loading')) gsap.set(this.targets(), { clearProps: 'opacity' }); } };
       tl = gsap.timeline();
-      tl.to(rd, { opacity: 0, filter: 'blur(6px)', duration: .2, ease: 'none' }, 0)
-        .to(H, { flip: 1, duration: .9, ease: E.iris, onUpdate: HOME.renderHero }, 0)
-        .to(f, { v: 1, duration: .7, ease: E.focus, onUpdate: () => HOME.setFocus(f.v) }, .2)
+      if (rd) tl.to(rd, { opacity: 0, filter: 'blur(6px)', duration: .2, ease: 'none' }, 0)
+        .to(H, { flip: 1, duration: .9, ease: E.iris, onUpdate: HOME.renderHero }, 0);
+      else if (html.classList.contains('is-bleed')) B.out(1100);   /* the light fades from the portrait out as the hero focuses in */
+      tl.to(f, { v: 1, duration: .7, ease: E.focus, onUpdate: () => HOME.setFocus(f.v) }, .2)
         .fromTo(barrel, { opacity: 0, filter: 'blur(6px)' }, Object.assign({ opacity: 1, filter: 'blur(0px)', duration: .6, ease: E.focus }, keepO), .35);
       words.forEach((w, i) => tl.fromTo([w, ink[i], knock[i]].filter(Boolean), { opacity: .14, filter: 'blur(12px)' },
         Object.assign({ opacity: 1, filter: 'blur(0px)', duration: .56, ease: E.focus }, keepO), .5 + i * .09));
@@ -275,13 +293,13 @@
          renderHero above); the ones still running clear it themselves on complete */
       $$('.hero-title .w').forEach((w) => { if (!gsap.isTweening(w)) gsap.set(w, { clearProps: 'opacity' }); });
       /* tweens still running clear their own props when they end; only the readout goes now */
-      rd.remove();
+      if (rd) rd.remove();
       ['pointerdown', 'keydown', 'wheel', 'touchstart'].forEach((t) => removeEventListener(t, skip, true));
       if (window.lenis && !FS.menu.busy) window.lenis.start();
       if (ST()) ST().refresh();
       FS.emit('loader:done');
     }
-    function skip() { if (L.done) return; progress = 1; start().progress(1); finish(); }
+    function skip() { if (L.done) return; progress = 1; if (B) B.out(0); start().progress(1); finish(); }
     L.skip = skip;
     ['pointerdown', 'keydown', 'wheel', 'touchstart'].forEach((t) => addEventListener(t, skip, { capture: true, passive: true }));
   };
@@ -538,12 +556,7 @@
       const stop = $('.wc-title .stop', card), btn = $('.wc-btn', card);
       if (!stop) return;
       /* card.__off: a filter takes the card out of the layout, so whatever hover state it had resets (HOME.work.place) */
-      if (!btn) {                                           /* Bandcamp: its stop only pings */
-        card.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse') { card.classList.add('is-hover'); FS.ping(stop); } });
-        card.addEventListener('pointerleave', () => card.classList.remove('is-hover'));
-        card.__off = () => card.classList.remove('is-hover');
-        return;
-      }
+      if (!btn) return;                                     /* round 7: every card has its button (Bandcamp too) */
       if (!window.gsap || F.reduced) {                      /* no choreography: the button simply lights */
         const light = $('.b-light', btn);
         const on = (v) => { card.classList.toggle('is-hover', v); light.style.setProperty('--bl', v ? '50%' : '0%'); $('.arr', btn).style.color = v ? ink : ''; };

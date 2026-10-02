@@ -46,6 +46,8 @@
     '/projects/galvany-portal.webp': dev('galvany', 1600, 1269, [126, 85, 1158, 1153]),
     '/projects/climatepartner.webp': dev('climatepartner', 1600, 1269, [126, 85, 1158, 1153]),
     '/projects/heycar.jpg': { kind: 'screen', src: 'assets/ext/heycar.jpg', w: 1024, h: 640 },
+    /* round 7: Werner's own shot of his Bandcamp player, the two panels overlapping (his 8.webp, rebuilt on the light: tools/bandcamp.py) */
+    'bandcamp/panels': dev('bandcamp', 1600, 1787, [244, 272, 1356, 1515]),
   };
   /* the live site's images. Screens are flat and opaque (a glass frame on the light); boards are flat UI on
      transparency with their own baked shadows (straight on the light, or on a night board where their type is set
@@ -90,6 +92,14 @@
     'heycar/idea-dealer': scr('heycar/idea-dealer', 2400, 1707),
     'heycar/idea-message': scr('heycar/idea-message', 2400, 1707),
   };
+  /* round 7, the Bandcamp player (tools/bandcamp.py): the extension's panels are flat UI on transparency (2× of its
+     ~384pt panel), so they sit on the light as boards; cap keeps them near their own pixels (the collapsed player
+     would otherwise be stretched across the grid); bandcamp.com with the player docked is a screen */
+  var BC = 'assets/work/bandcamp/';
+  WORK.live['bandcamp/browser'] = { kind: 'screen', src: BC + 'browser.webp', w: 1482, h: 812 };
+  WORK.live['bandcamp/collection'] = { kind: 'board', src: BC + 'collection.webp', w: 769, h: 1347, cap: 480 };
+  WORK.live['bandcamp/discovery'] = { kind: 'board', src: BC + 'discovery.webp', w: 769, h: 1347, cap: 480 };
+  WORK.live['bandcamp/mini'] = { kind: 'board', src: BC + 'mini.webp', w: 769, h: 158, cap: 480 };   /* the panels' scale */
   for (var i = 1; i <= 7; i++) WORK.live['heycar/finance-0' + i] = scr('heycar/finance-0' + i, 2400, 1500);
   var L = function (k) { return WORK.live[k]; };
 
@@ -259,6 +269,24 @@
         { src: '/projects/galvany-portal.webp', alt: 'Galvany reporting', caption: 'Reporting', span: 'half' },
         { src: '/projects/galvany-portal.webp', alt: 'Galvany settings', caption: 'Settings', span: 'half' },
       ],
+      nextSlug: 'bandcamp',
+      nextType: 'side-quest',
+    },
+    /* round 7 (Werner, 2026-10-02): his Chrome extension for listening on Bandcamp. Copy from his own words in the
+       session ("Minimum copy, role, year, company (self-employed)" and why it exists); the year (2026, his screenshots
+       show Bandcamp's September 2026 editorial) and the role are my reading of it, flagged to him. */
+    bandcamp: {
+      type: 'side-quest', no: '02', hue: { h1: 'orchid', h2: 'iris', ax: '72%', ay: '26%' },
+      card: 'bandcamp/panels', cardAlt: "The Bandcamp player's Collection and Discovery panels",
+      order: ['player'],
+      slug: 'bandcamp',
+      name: 'Bandcamp',
+      headline: 'Music player for Bandcamp.',
+      company: 'Self-employed',
+      role: 'Designer & developer',
+      year: '2026',
+      tags: ['Chrome extension', 'Product design', 'UI design'],
+      brief: "Bandcamp is where my music lives, but listening there never worked the way I like. So I wanted to see if I could build it: a Chrome extension that makes it easy to discover new music, and plays my own library at work without downloading all of it.",
       nextSlug: 'climatepartner',
       nextType: 'eye-candy',
     },
@@ -286,7 +314,7 @@
       nextType: 'eye-candy',
     },
   };
-  WORK.kinds = { 'case': 'Case study', 'eye-candy': 'Eye candy' };
+  WORK.kinds = { 'case': 'Case study', 'eye-candy': 'Eye candy', 'side-quest': 'Side quest' };
 
   /* ── the live site's sections (round 6) ──────────────────────────────────────────────────────────────────────────
      Copy verbatim from _brief/work-pages-live-content.md (the live site's words, its typos fixed there, in sentence
@@ -304,6 +332,18 @@
      Images carry alt text (what they show) and never a caption the brief does not give: unlabelled slots get a mono
      index ("01 / 03"). */
   WORK.sections = {
+    /* round 7: the Bandcamp player's one section, its gallery. Labels are the extension's own names for its tabs
+       (Collection, Discovery) and what the shot shows (the player in the browser, collapsed); nothing else is said */
+    bandcamp: {
+      player: { name: 'Gallery', blocks: [
+        { figs: [
+          { m: L('bandcamp/browser'), label: 'In the browser', alt: 'bandcamp.com with the player docked on the right: the Discovery queue over the player' },
+          { m: L('bandcamp/collection'), label: 'Collection', alt: 'The Collection tab: the synced library, 2,735 tracks, with Re-sync, over the player', span: 6 },
+          { m: L('bandcamp/discovery'), label: 'Discovery', alt: 'The Discovery tab: a session queue of 200 tracks, with Load page and Add page, over the player', span: 6 },
+          { m: L('bandcamp/mini'), label: 'Collapsed', alt: 'The player collapsed to one bar: artwork, track, shuffle, previous, pause, next and expand' },
+        ] },
+      ] },
+    },
     affinidi: {
       system: { name: 'The system', h2: "Building a design system for Affinidi's privacy-preserving applications.", size: 'statement', blocks: [
         { p: [
@@ -540,7 +580,7 @@
         soft + img(m, alt, 'st-img st-sharp', { eager: eager, loupe: true }) + '</span>';
     }
     if (m.kind === 'board') {
-      return '<span class="pl-bd' + (m.ground === 'night' ? ' pl-bd--night' : '') + '">' + img(m, alt, '', { loupe: true }) + '</span>';
+      return '<span class="pl-bd' + (m.ground === 'night' ? ' pl-bd--night' : '') + (m.cap ? ' pl-bd--cap" style="--cap:' + m.cap + 'px' : '') + '">' + img(m, alt, '', { loupe: true }) + '</span>';
     }
     /* a flat screen: its glass frame, the screen at 1:1 at most; out of focus it blurs and takes the hue pair */
     return '<span class="scr" style="--nw:' + m.w + ';--nh:' + m.h + '">' + img(m, alt, '', { eager: eager, loupe: true }) + '<i class="scr-tint" aria-hidden="true"></i></span>';
@@ -554,7 +594,7 @@
     /* a device's content aspect on its plate (phones size the plate to it, css/work.css); a wide board (a strip wider
        than 2.5:1) pans sideways on phones instead of shrinking to a sliver */
     var b = m.box || [0, 0, m.w, m.h], st = m.kind === 'device' ? ' style="--pbar:' + ((b[2] - b[0]) / (b[3] - b[1])).toFixed(3) + '"' : '';
-    var wide = m.kind === 'board' && m.w / m.h > 2.5;
+    var wide = m.kind === 'board' && !m.cap && m.w / m.h > 2.5;   /* a capped board shows whole (the Bandcamp bar) */
     /* on-night for its own tokens (the loupe's tone, a frame's rim), but no data-tone: the header over a plate keeps
        its section's tone, instead of flipping to the night scrim over every lit plate it crosses */
     return '<div class="pl ' + (o.fit ? 'pl--fit' : 'pl--hug') + (wide ? ' pl--pan' : '') + ' on-night' + (o.cls ? ' ' + o.cls : '') + '" data-kind="' + m.kind + '"' + st + lens + (o.attrs || '') + '>' +
@@ -600,7 +640,7 @@
         '<h1 class="wh-title" id="w-title" data-lens="text">' + words(p.headline) + '</h1>' +
         '<ul class="wh-tags" aria-label="Disciplines">' + p.tags.map(function (t) { return '<li class="tag"><i class="t-stop"><i class="lit"></i></i>' + esc(t) + '</li>'; }).join('') + '</ul>' +
       '</div>' +
-      '<dl class="wh-meta' + (link ? ' wh-meta--5' : '') + '">' + meta.map(function (r) { return '<div class="wm"><dt>' + r[0] + '</dt><dd>' + esc(r[1]) + '</dd></div>'; }).join('') + link + '</dl>' +
+      '<dl class="wh-meta' + (link ? ' wh-meta--5' : meta.length === 3 ? ' wh-meta--3' : '') + '">' + meta.map(function (r) { return '<div class="wm"><dt>' + r[0] + '</dt><dd>' + esc(r[1]) + '</dd></div>'; }).join('') + link + '</dl>' +
     '</section>';
   }
   function brief(p, c) {
@@ -874,6 +914,7 @@
   WORK.views = {
     'case': function (p) { return p.order; },
     'eye-candy': function () { return ['gallery']; },
+    'side-quest': function (p) { return p.order; },
   };
 
   function none() {

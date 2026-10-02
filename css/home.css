@@ -254,11 +254,7 @@ html.is-static .logo-band::before,html.is-static .logo-band::after,html.is-reduc
 /* the traveller: a clone of the headline stop that runs up to the tear and along it into the button */
 .wc-trav{position:absolute;left:0;top:0;z-index:2;border-radius:50%;pointer-events:none;visibility:hidden;will-change:transform;box-shadow:0 0 5px color-mix(in srgb,var(--iris) 34.9%,transparent)}
 .wc-title .stop.is-unlit::before{background:var(--night);box-shadow:inset 0 0 0 1px #F3F1F833}
-.work-card:not(.is-quest){cursor:pointer}   /* the whole card forwards to its button (js/home.js) */
-.wc-soon{position:absolute;left:calc(100% - 60px);top:calc(var(--ty) + 38px);transform:translateX(-50%);
-  font:400 var(--t-micro)/1 var(--f-mono);letter-spacing:.02em;color:var(--haze);white-space:nowrap}
-.wc-quest{position:absolute;left:calc(100% - 60px - 6px);top:calc(var(--ty) - 6px);width:12px;height:12px;border-radius:50%;z-index:3;
-  box-shadow:0 0 8px color-mix(in srgb,var(--iris) 50.2%,transparent)}
+.work-card{cursor:pointer}   /* the whole card forwards to its button (js/home.js); round 7: Bandcamp's too */
 .wc-soft,.wc-sharp{transition:opacity 420ms var(--ease-focus)}
 
 /* ── services ──────────────────────────────────────────────────────── */
@@ -430,7 +426,6 @@ html.is-static .ft-item,html.is-reduced .ft-item{padding-right:0}
   .work-card{--ty:calc(100cqw * .7486);--tear-in:20px;border-radius:var(--r-card-m)}
   .wc-stub{min-height:0;padding:24px 20px 24px}
   .wc-title{max-width:none;padding-right:0}
-  .wc-soon{top:calc(var(--ty) + 36px)}
 
   .services{padding-top:var(--s9);padding-bottom:var(--s8)}
   .svc-list{margin-top:var(--s7)}
