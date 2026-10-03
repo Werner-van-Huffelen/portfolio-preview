@@ -18,7 +18,9 @@
   try{localStorage.setItem(K,T[i]);}catch(e){try{window.name='fs.scheme='+T[i];}catch(e2){}}
   var id=T[i],h=d.documentElement;
   h.setAttribute('data-theme',id);
-  window.FS_SCHEME={id:id,index:i,list:T};
+  /* changed: this visit is a reload that moved the scheme on (round 7: the homepage plays its colour bleed then; a
+     first visit and any other load keep the original pinhole loader, js/handoff.js) */
+  window.FS_SCHEME={id:id,index:i,list:T,changed:nav==='reload'&&p>=0};
   /* the favicon is the scheme's lit disc */
   var C={violet:['F7F4FF','B3A8FF','7C6BFF'],ember:['FFF4EC','FFB894','FF6B2B'],cobalt:['F1F6FF','A6BDFF','3F6BFF'],sodium:['FFFBEE','FFE07A','FFC933'],borealis:['F0FFF8','A0F5D0','2EE59D']}[id];
   var ic=d.querySelector('link[rel=icon]');

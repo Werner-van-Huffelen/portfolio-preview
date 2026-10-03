@@ -28,7 +28,9 @@
  *             the loader.
  *   bleed     (round 7, Werner: "when reloading the page and changing the color scheme can you use the same interaction
  *             as when loading the project pages, full color bleed (of the new color) instead of the percentage loader")
- *             the homepage's visits that would have played the pinhole loader (is-loading, no return): the new scheme's
+ *             the homepage's reloads that move the scheme on (FS_SCHEME.changed, js/scheme.js; Werner: "keep the original
+ *             page load one first loading the page", so a first visit and any other load keep the pinhole loader and
+ *             its percentage) where the loader would have played (is-loading, no return): the new scheme's
  *             light irises open from its dot in the eyebrow (the one ⌘R just lit) to the whole viewport, painted like a
  *             card's disc (650ms, the iris curve), inside a cover that is the night itself from the first paint
  *             (Werner: "the colors on the page already change before the animation starts": nothing of the new
@@ -122,9 +124,9 @@
       html.appendChild(veil); early.push(veil);
       setTimeout(() => { if (cl.contains('is-back')) lift(); }, 3500);
     }
-    /* any other visit that would play the loader: the bleed. Its cover is up from the first paint, clipped to nothing
-       (the night shows, as the pinhole's first frame did), and opens once the page is laid out (boot) */
-    if (cl.contains('is-loading')) {
+    /* a reload that moved the scheme on, where the loader would play: the bleed. Its cover is the night from the first
+       paint and its light opens once the page is laid out (boot). Every other visit keeps the pinhole loader */
+    if (cl.contains('is-loading') && W.FS_SCHEME && W.FS_SCHEME.changed) {
       cl.add('is-bleed'); note('bleed');
       /* the cover is the night, opaque (its own background); only its light is clipped, so the page in the new
          scheme stays hidden until the light has opened over it */
