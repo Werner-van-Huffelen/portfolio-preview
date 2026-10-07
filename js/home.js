@@ -503,8 +503,8 @@
   /* round 4 (Werner: "filter the section by hiding the other items"): a filter keeps only its projects. The others
      leave the layout ([hidden]: display none, so out of the tab order and the accessibility tree) and the kept cards
      reflow into the two columns in number order, the original zigzag (1st left, 2nd right, 3rd left…), so All
-     restores 01 03 05 | 02 04 06 under the right column's offset. Mobile is one column: cards keep their places and
-     only hide. HOME.work.place() is the instant layout; stage 2 (HOME.work.run, js/motion.js) choreographs it. */
+     restores 01 03 05 | 02 04 06 under the right column's offset. Mobile is one column in number order (2026-10-05:
+     01 and 02, the two Recent work cards, lead together), and cards only hide. HOME.work.place() is the instant layout; stage 2 (HOME.work.run, js/motion.js) choreographs it. */
   function work() {
     const tags = $$('.work-tags .tag'), cards = $$('.work-card'), cols = $$('.work-grid > .wcol'), bar = $('.work-tags');
     const per = cols.map((col) => $$('.work-card', col)), order = [];
@@ -514,7 +514,7 @@
       pick: (f) => order.filter((c) => f === 'all' || c.dataset.kind === f),
       place(list) {
         const on = new Set(list), seq = cols.map(() => []);
-        if (mobile()) per.forEach((a, j) => seq[j].push(...a));
+        if (mobile()) seq[0].push(...order);   /* one column, 01 02 03 …; the empty right column hides (css/home.css) */
         else {
           list.forEach((c, i) => seq[i % cols.length].push(c));
           per.forEach((a, j) => a.forEach((c) => { if (!on.has(c)) seq[j].push(c); }));   /* parked in their own column */
@@ -549,6 +549,7 @@
     };
     /* crossing the breakpoint switches between the two layouts at once */
     try { matchMedia('(max-width: 767px)').addEventListener('change', () => { if (W.stop) W.stop(); W.place(W.pick(W.filter)); }); } catch (e) { /* old Safari */ }
+    W.place(W.pick(W.filter));   /* phones load in number order (desktop: the markup's zigzag already is the layout) */
     tags.forEach((t) => t.addEventListener('click', () => select(t)));
     $('.work-tags') && $('.work-tags').addEventListener('keydown', (e) => {
       if (!/Arrow(Left|Right|Up|Down)/.test(e.key)) return;

@@ -37,7 +37,7 @@
   /* ── the scheme (round 4). index.html's head script picks it before the first paint (html[data-theme]) and
      css/system.css §1b holds its colours; the night and the ice never change. FS.theme.src() maps a light-tinted asset
      to its assets/t/<id>/ copy (tools/themes.py), FS.theme.rgb() reads a colour token as 0–1 floats for the shaders. */
-  const TINTED = /(^|\/)assets\/((portrait-moon(-soft)?|[a-z]+-soft-moon)\.webp|aurora-still\.webp)$/;
+  const TINTED = /(^|\/)assets\/((portrait-moon(-soft)?|[a-z][a-z-]*-soft-moon)\.webp|aurora-still\.webp)$/;
   FS.theme = {
     id: html.dataset.theme || 'violet',
     /* round 4b (Werner: "I really like the black and white image, change all the images to black and white"): the
