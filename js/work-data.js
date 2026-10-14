@@ -228,7 +228,7 @@
       type: 'case', no: '05', hue: { h1: 'glacier', h2: 'iris', ax: '20%', ay: '46%' },
       card: '/projects/heycar-macbook.webp', cardAlt: 'heycar vehicle page on a MacBook',
       order: ['outcome', 'challenge', 'what', 'ideation', 'decisions', 'final'],   /* 2026-10-08 (Werner): outcome first */
-      links: [{ href: 'https://www.hey.car', text: 'hey.car' }, { href: 'https://www.heycar.co.uk', text: 'heycar.co.uk' }],
+      /* links: dropped 2026-10-14 (Werner): hey.car and heycar.co.uk now redirect to drive.co.uk */
       slug: 'heycar',
       name: 'heycar',
       headline: 'heycar makes buying a second-hand car simple, fair and transparent.',
