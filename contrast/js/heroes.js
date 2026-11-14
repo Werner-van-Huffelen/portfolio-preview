@@ -81,22 +81,165 @@
       var gone = function () { if (el.parentNode) el.parentNode.removeChild(el); };
       el.addEventListener('animationend', gone); setTimeout(gone, 1700);
     }
+
+    /* The portrait, on the right, is unseen until squares over it light up: each such square is a tile (.px) that
+       holds its own piece of the picture (css/heroes-c.css). Around the pointer the tiles form a round brush, full in
+       the middle and thinner towards its rim; a tile the brush has left fades like any lit square. The portrait is n
+       squares a side, from column i0, on the n rows above the timeline. */
+    var who = sec.querySelector('.who'), pic = who && who.querySelector('img'), tiles = {}, held = [], map = null, n = 0, i0 = 0, gen = 0, made = false;
+    var REACH = 3.4, CORE = 1.7;                                           /* the brush, in squares: its rim and its full middle */
+    function wipe() { for (var k in tiles) if (tiles[k].el.parentNode) who.removeChild(tiles[k].el); tiles = {}; held = []; }
+    function frame(s) {                                                    /* 0 while the portrait is not on the page, or not loaded yet */
+      if (!who || !pic || still || !s.c) return 0;
+      var w = who.getBoundingClientRect(), k = Math.round(w.width / s.c);
+      if (!k || !pic.complete || !pic.naturalWidth) return 0;
+      if (k !== n) { wipe(); n = k; map = null; who.style.setProperty('--n', n); }
+      if (!map) map = cover(n);
+      if (who._src !== pic.currentSrc) { who._src = pic.currentSrc; who.style.setProperty('--img', 'url("' + pic.currentSrc + '")'); }
+      i0 = Math.round((w.left - s.r.left - s.m) / s.c);
+      return n;
+    }
+    function has(x, y) { return x >= 0 && y >= 0 && x < n && y < n && map[y * n + x]; }
+    function tile(x, y) {
+      var k = x + ',' + y, t = tiles[k];
+      if (!t) {
+        var el = d.createElement('i');
+        el.className = 'px'; el.style.setProperty('--x', x); el.style.setProperty('--y', y);
+        who.appendChild(el); t = tiles[k] = { el: el, b: 0 }; made = true;
+      }
+      return t;
+    }
+    function show(t) {
+      var o = t.b;
+      if (o > 0.04) { t.el.style.setProperty('--o', o.toFixed(2)); t.el.classList.add('on'); } else t.el.classList.remove('on');
+    }
+    function brush(fx, fy) {                                               /* the pointer, in squares from the portrait's top left */
+      var fresh = [], g = ++gen, x, y, dist, t;
+      for (y = Math.max(0, Math.floor(fy - REACH)); y <= Math.min(n - 1, Math.floor(fy + REACH)); y++)
+        for (x = Math.max(0, Math.floor(fx - REACH)); x <= Math.min(n - 1, Math.floor(fx + REACH)); x++) {
+          dist = Math.sqrt((x + 0.5 - fx) * (x + 0.5 - fx) + (y + 0.5 - fy) * (y + 0.5 - fy));
+          if (dist >= REACH || !map[y * n + x]) continue;
+          t = tile(x, y); t.b = dist < CORE ? 1 : 1 - (dist - CORE) / (REACH - CORE); t.g = g; fresh.push(t);
+        }
+      if (made) { void who.offsetWidth; made = false; }                     /* a new tile fades in from nothing */
+      held.forEach(function (o) { if (o.g !== g) { o.b = 0; show(o); } });
+      fresh.forEach(show); held = fresh;
+      return fresh.length;
+    }
+    /* which squares hold a piece of the picture: it is a cut-out, and a square of its empty surround stays a plain
+       square of the grid */
+    function cover(k) {
+      var m = [], q = 4, x, y, u, v, any;
+      try {
+        var cv = d.createElement('canvas'), cx, a;
+        cv.width = cv.height = k * q; cx = cv.getContext('2d'); cx.drawImage(pic, 0, 0, k * q, k * q);
+        a = cx.getImageData(0, 0, k * q, k * q).data;
+        for (y = 0; y < k; y++) for (x = 0; x < k; x++) {
+          any = false;
+          for (v = 0; v < q && !any; v++) for (u = 0; u < q; u++) if (a[((y * q + v) * k * q + x * q + u) * 4 + 3] > 40) { any = true; break; }
+          m.push(any);
+        }
+      } catch (e) { m = []; for (x = 0; x < k * k; x++) m.push(true); }    /* no reading the picture: every square counts */
+      return m;
+    }
+    /* The dot has landed on Shipped: a wave of light runs out from it over the whole grid, square by square, and is
+       gone again (2026-11-14, Werner: a wave over the grid that shows the picture briefly, instead of holding it).
+       Where the wave crosses the portrait its squares show the picture for as long as the wave is on them, which
+       says the portrait is there. It is drawn on one canvas laid over the hero, behind the type like the grid (the
+       wave is hundreds of squares deep: too many elements), and the canvas goes when the wave has left. */
+    var DEEP = 9, STAY = 15, SPEED = 17;                                   /* the wave: its depth in squares (on the portrait it lingers: STAY), and squares a second */
+    function wave(me) {
+      var s = size(), ruler = grid.parentNode, cv = d.createElement('canvas'), cx = cv.getContext && cv.getContext('2d');
+      if (!s.c || !cx) return;
+      var sr = sec.getBoundingClientRect(), W = sr.width, H = sr.height, yl = ruler.getBoundingClientRect().top - sr.top;   /* yl: the timeline */
+      var c = s.c, x0 = s.m, k = frame(s), dpr = Math.min(window.devicePixelRatio || 1, 2), src = null, nat = 0;
+      var ox = W - x0, oy = yl, B = DEEP * c, far = 0;                      /* it starts where the dot rests */
+      [[0, 0], [W, 0], [0, H], [W, H]].forEach(function (p) { far = Math.max(far, Math.sqrt((p[0] - ox) * (p[0] - ox) + (p[1] - oy) * (p[1] - oy))); });
+      var cols = Math.round((W - 2 * x0) / c), j0 = -Math.ceil(yl / c), j1 = Math.ceil((H - yl) / c);
+      var mx = 0.56 * W, mrx = 0.74 * W, mry = 720;                         /* the grid's own fade (css/heroes-c.css): the wave fades with it */
+      var drop = function () { if (cv.parentNode) cv.parentNode.removeChild(cv); };
+      if (k) {                                                             /* the picture at the size it is shown: a square of it is then nat by nat (an <img>'s own size depends on its srcset) */
+        src = d.createElement('canvas'); src.width = src.height = Math.round(k * c * dpr); nat = src.width / k;
+        src.getContext('2d').drawImage(pic, 0, 0, src.width, src.height);
+      }
+      cv.className = 'wave'; cv.setAttribute('aria-hidden', 'true');
+      cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+      cv.style.top = (-yl - 1) + 'px'; cv.style.width = W + 'px'; cv.style.height = H + 'px';
+      ruler.appendChild(cv);
+      var t0 = performance.now();
+      (function step(t) {
+        var R = (t - t0) / 1000 * SPEED * c, i, j, x, y, dist, u, al, nx, ny, r, px, py, g;
+        if (me !== run || R - B > far) { drop(); return; }
+        cx.setTransform(dpr, 0, 0, dpr, 0, 0); cx.globalAlpha = 1; cx.clearRect(0, 0, W, H);
+        /* a soft light under the squares, where the wave is */
+        g = cx.createRadialGradient(ox, oy, Math.max(0, R - B), ox, oy, R + c);
+        g.addColorStop(0, 'rgba(124,107,255,0)'); g.addColorStop(0.74, 'rgba(124,107,255,.2)'); g.addColorStop(1, 'rgba(124,107,255,0)');
+        cx.fillStyle = g; cx.fillRect(0, 0, W, H);
+        cx.save(); cx.globalCompositeOperation = 'destination-in'; cx.translate(mx, yl); cx.scale(mrx, mry);
+        g = cx.createRadialGradient(0, 0, 0.3, 0, 0, 1); g.addColorStop(0, 'rgba(0,0,0,1)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+        cx.fillStyle = g; cx.fillRect(-3, -3, 6, 6); cx.restore();
+        /* the squares: each one comes up as the front reaches it and fades behind it */
+        cx.lineWidth = 1;
+        for (j = j0; j < j1; j++) for (i = -1; i <= cols; i++) {
+          x = x0 + i * c; y = yl + j * c;
+          dist = Math.sqrt((x + c / 2 - ox) * (x + c / 2 - ox) + (y + c / 2 - oy) * (y + c / 2 - oy));
+          if (R <= dist) continue;
+          px = i - i0; py = j + k;
+          if (k && px >= 0 && py >= 0 && px < k && py < k && map[py * k + px]) {          /* a square of the portrait: as under the pointer */
+            u = (R - dist) / (STAY * c);                                                   /* it holds a little longer, so the face is whole for a moment */
+            if (u >= 1) continue;
+            al = u < 0.08 ? u / 0.08 : u < 0.45 ? 1 : Math.pow(1 - (u - 0.45) / 0.55, 1.4);
+            cx.globalAlpha = al;
+            cx.fillStyle = '#e2dcff'; cx.fillRect(x, y, c, c);
+            cx.drawImage(src, px * nat, py * nat, nat, nat, x, y, c, c);
+            cx.fillStyle = 'rgba(124,107,255,.1)'; cx.fillRect(x, y, c, c);
+            cx.strokeStyle = 'rgba(124,107,255,.34)'; cx.lineWidth = 0.5; cx.strokeRect(x + 0.25, y + 0.25, c - 0.5, c - 0.5); cx.lineWidth = 1;
+          } else {                                                                         /* a square of the grid: as lit by the pointer */
+            u = (R - dist) / B;
+            if (u >= 1) continue;
+            al = u < 0.12 ? u / 0.12 : Math.pow(1 - (u - 0.12) / 0.88, 1.6);
+            nx = (x + c / 2 - mx) / mrx; ny = (y + c / 2 - yl) / mry; r = Math.sqrt(nx * nx + ny * ny);
+            al *= r <= 0.3 ? 1 : 1 - (r - 0.3) / 0.7;
+            if (al < 0.02) continue;
+            cx.globalAlpha = al;
+            cx.fillStyle = 'rgba(124,107,255,.2)'; cx.fillRect(x, y, c, c);
+            cx.strokeStyle = 'rgba(124,107,255,.6)'; cx.strokeRect(x + 0.5, y + 0.5, c - 1, c - 1);
+          }
+        }
+        requestAnimationFrame(step);
+      })(t0);
+    }
+
     sec.addEventListener('pointermove', function (e) {
       var s = size();
       if (!s.c) return;
-      var i = Math.floor((e.clientX - s.r.left - s.m) / s.c), j = Math.floor((e.clientY - s.r.top - 1200) / s.c), key = i + ',' + j;
+      var gx = (e.clientX - s.r.left - s.m) / s.c, gy = (e.clientY - s.r.top - 1200) / s.c, i = Math.floor(gx), j = Math.floor(gy), key = i + ',' + j;
+      var k = frame(s), on = false;
+      if (k) {
+        on = brush(gx - i0, gy + k) > 0 && has(i - i0, j + k);              /* on the picture itself the brush is the light */
+        who.style.setProperty('--hx', ((gx - i0) * s.c).toFixed(1) + 'px'); who.style.setProperty('--hy', ((gy + k) * s.c).toFixed(1) + 'px');
+        who.classList.toggle('near', held.length > 0);
+      }
       if (key === last) return;
-      last = key; light(i, j, s);
+      last = key;
+      if (!on) light(i, j, s);
     });
-    sec.addEventListener('pointerleave', function () { last = ''; });
+    function rest() {                                                      /* the brush lets go of the portrait */
+      last = '';
+      held.forEach(function (t) { t.b = 0; show(t); }); held = [];
+      if (who) who.classList.remove('near');
+    }
+    sec.addEventListener('pointerleave', rest);
+    addEventListener('resize', rest);                                      /* the squares have moved under the pointer */
     /* the dot's trail runs with the timeline (start calls this, and Replay with it), for as long as the dot travels */
     sec._follow = function () {
       if (!dot || still) return;
-      var me = ++run, t0 = performance.now(), col = null;
+      var me = ++run, t0 = performance.now(), col = null, swept = false;
       (function step(t) {
         if (me !== run || t - t0 > 6200) return;
         var s = size(), b = dot.getBoundingClientRect(), i = Math.floor((b.left + b.width / 2 - s.r.left - s.m) / s.c + 0.001);
         if (s.c && i !== col) { col = i; light(i, -1, s); light(i, 0, s); }
+        if (!swept && t - t0 > 5200) { swept = true; wave(me); }            /* .5s + three legs + .8s: the dot is on Shipped */
         requestAnimationFrame(step);
       })(t0);
     };

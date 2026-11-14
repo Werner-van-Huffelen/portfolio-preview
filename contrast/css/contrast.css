@@ -23,8 +23,8 @@
 *,*::before,*::after{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%;scroll-padding-top:88px}
 body{margin:0;background:var(--paper);color:var(--ink);font:400 1rem/1.45 var(--sans);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility;overflow-x:clip}
-h1,h2,h3,p,figure,dl,dd,ul{margin:0;padding:0} h1,h2,h3{font-size:inherit;font-weight:inherit}
-ul{list-style:none} img{display:block;max-width:100%} a{color:inherit;text-decoration:none}
+h1,h2,h3,p,figure,dl,dd,ul,ol{margin:0;padding:0} h1,h2,h3{font-size:inherit;font-weight:inherit}
+ul,ol{list-style:none} img{display:block;max-width:100%} a{color:inherit;text-decoration:none}
 button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
 :focus-visible{outline:2px solid var(--stop);outline-offset:3px}
 ::selection{background:var(--stop);color:#fff}
@@ -102,25 +102,39 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 .sec-h .big{font-size:var(--h2)}
 
 /* ── work: six cards that stack as you scroll ───────────────────────────── */
-.stack{display:grid;gap:20px}
-.card{position:relative;display:grid;background:var(--card);border-radius:var(--r);overflow:hidden;transform-origin:50% 0}
+/* the stack: a card sticks under the nav, each a step lower than the one before, and the next one slides over it
+   (js steps a covered card back a little: --c). 2026-11-14 (Werner): at every width, not only on a wide screen. A
+   card taller than the window (a phone) sticks later, once its foot has come into view: --h is its height, set by
+   js; without it the first value always wins */
+.stack{display:grid;gap:20px;--top:76px;--step:8px}
+.card{position:sticky;top:min(calc(var(--top) + var(--i) * var(--step)),calc(100svh - var(--h,0px) - 12px));display:grid;background:var(--card);border-radius:var(--r);overflow:hidden;transform-origin:50% 0;transform:scale(calc(1 - var(--c,0) * .045));will-change:transform}
 .card .txt{display:flex;flex-direction:column;gap:22px;padding:clamp(20px,2.4vw,36px)}
 .card .top{display:flex;justify-content:space-between;gap:16px}
 .card .top .n{color:var(--ink)}
 .card h3{font-size:var(--h3);font-weight:640;letter-spacing:-.04em;line-height:1}
 .card h3 a::after{content:"";position:absolute;inset:0;z-index:1}
 .card .line{font-size:clamp(1.0625rem,1.35vw,1.25rem);line-height:1.3;letter-spacing:-.015em;color:var(--grey);max-width:24em;text-wrap:pretty}
-.tags{margin-top:auto}
+.card .hd{margin-top:auto}                                               /* 2026-11-14 (Werner): name and line sit right above the list, not under the counter */
 .tags li{display:flex;align-items:center;gap:12px;padding-block:11px;border-top:1px solid var(--line);font-size:.9375rem}
 .tags li::before{content:"";width:6px;height:6px;background:var(--ink)}
 .card .foot-row{display:flex;align-items:center;justify-content:space-between}
 .card:hover .go{background:var(--stop);border-color:var(--stop);color:#fff}
-.panel{position:relative;display:flex;flex-direction:column;min-height:300px;padding:clamp(16px,2vw,28px);background:var(--tint,var(--mat))}
-.panel.night{background:var(--night);color:#fff}
+.panel{position:relative;isolation:isolate;display:flex;flex-direction:column;min-height:300px;padding:clamp(16px,2vw,28px);background:var(--tint,var(--mat));--gl:rgba(18,16,22,.075)}
+.panel.night{background:var(--night);color:#fff;--gl:rgba(255,255,255,.085)}
+.panel.lav{--gl:rgba(124,107,255,.24)}
+/* 2026-11-14 (Werner): the grid behind a card's screens. Its squares are the page's own (1/32 of the page's width
+   between the margins, 1/16 on a phone); on a wide screen it is shifted so its lines fall where the page's 32
+   columns do across the whole card (the panel starts at 5/12 of it: 13 squares and a third). The line's colour
+   follows the card's ground. */
+.panel::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;--c:calc((100vw - 2 * var(--m)) / 16);
+  background:linear-gradient(var(--gl) 1px,transparent 1px) 0 50% / var(--c) var(--c),linear-gradient(90deg,var(--gl) 1px,transparent 1px) -1px 0 / var(--c) var(--c)}
+@media (min-width:761px){ .panel::before{--c:calc((100vw - 2 * var(--m)) / 32)} }
+@media (min-width:900px){ .panel::before{background-position:0 50%,calc(var(--c) * 2 / 3) 0} }
 .panel .cell{flex:1;display:flex;flex-direction:column;min-height:0}
 .panel .mat{flex:1;min-height:220px}
 @media (min-width:900px){
-  .card{grid-template-columns:5fr 7fr;position:sticky;top:calc(84px + var(--i) * 14px);min-height:min(640px,calc(100vh - 176px));transform:scale(calc(1 - var(--c,0) * .045));will-change:transform}
+  .stack{--top:84px;--step:14px}
+  .card{grid-template-columns:5fr 7fr;min-height:min(640px,calc(100vh - 176px))}
 }
 
 /* a screen: whole, at its own proportions; several states step through, the caption names them */
@@ -131,6 +145,16 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 .frame img.is-loading{opacity:0}
 .bare .frame img,.bleed .frame img{box-shadow:none;border-radius:0}
 .bleed .frame img{width:100%;height:100%;max-width:none;max-height:none;object-fit:cover;object-position:var(--pos,50% 0)}
+/* a card's cover (2026-11-14, Werner): the live site's picture of the project, its devices cut out, so the grid shows
+   around them. It is all a card shows: no caption, no stepping. It arrives from below, tipped back, and settles
+   when the card comes into view (.in, js) */
+.frame.f-cover img{border-radius:0;box-shadow:none;filter:drop-shadow(0 26px 28px rgba(18,16,22,.2))}
+.panel.night .frame.f-cover img{filter:drop-shadow(0 24px 44px rgba(124,107,255,.3))}
+@media (prefers-reduced-motion:no-preference){
+  .js .frame.f-cover:not(.in){opacity:0}
+  .js .frame.f-cover img{transform:perspective(1400px) translateY(13%) rotateX(16deg) rotateZ(-2.5deg) scale(.88);transition:transform 1.4s cubic-bezier(.2,.75,.2,1),opacity .3s}   /* a softer curve than --out, which is over in a blink */
+  .js .frame.f-cover.is-on.in img{transform:none}
+}
 .cap{position:relative;z-index:2;display:flex;flex-wrap:wrap;gap:0 16px;min-height:26px;padding-top:10px}
 .panel.night .cap,.night .cap{color:rgba(255,255,255,.6)}
 .cap button{font:inherit;letter-spacing:inherit;text-transform:inherit;color:inherit;opacity:.6;padding-block:13px;margin-block:-13px;transition:opacity .2s}
@@ -141,60 +165,141 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 .shot.night{background:var(--night)} .shot.lav{background:var(--lav)}
 .shot .mat{aspect-ratio:var(--ar,16 / 10)}
 
-/* ── about ──────────────────────────────────────────────────────────────── */
-.about{row-gap:28px}
+/* ── about ────────────────────────────────────────────────────────────────
+   2026-11-14 (Werner: alignment and spacing): the label has its own row; under it the portrait fills its four
+   columns and the text column is exactly as tall. The text sits at its foot: the rule that closes the facts is the
+   one the portrait stands on, and the statement stands right above the bio (Werner, later that day: "closer to the text
+   below"; it used to sit at the portrait's top edge, a long way up). The portrait is 4:5 at least and grows with
+   the text when that is the taller one. Bio and facts sit in one ruled block. */
+.about{row-gap:18px}
 .about>*{grid-column:1 / -1}
-.portrait{width:min(300px,62vw);aspect-ratio:4 / 5;margin-top:18px;background:var(--stop);border-radius:var(--rs);overflow:hidden}
-.portrait img{width:100%;height:100%;object-fit:cover;object-position:50% 20%}
+/* 2026-11-14 (Werner: the portrait as on the CV, his pick there): the cut-out alone, standing on a rule with a soft
+   violet light behind it. It was a violet tile. The rule is the one that closes the facts, carried on under him */
+.portrait{position:relative;width:min(300px,62vw);border-bottom:1px solid var(--line);overflow:hidden;
+  background:radial-gradient(ellipse 50% 44% at 50% 60%,rgba(124,107,255,.32),rgba(124,107,255,0) 100%)}
+.portrait::before{content:"";display:block;padding-top:100%}
+.portrait img{position:absolute;inset:0;z-index:1;width:100%;height:100%;object-fit:contain;object-position:50% 100%}
+/* the grid behind him (Werner, later that day): the page's own squares, counted from the left margin and up from the
+   rule he stands on, fading out towards the frame's edges as the hero's grid does */
+.portrait::after{content:"";position:absolute;inset:0;--c:calc((100vw - 2 * var(--m)) / 16);
+  background:linear-gradient(var(--line) 1px,transparent 1px) 0 100% / var(--c) var(--c),linear-gradient(90deg,var(--line) 1px,transparent 1px) 0 100% / var(--c) var(--c);
+  -webkit-mask-image:radial-gradient(ellipse 72% 64% at 50% 62%,#000 32%,transparent 100%);mask-image:radial-gradient(ellipse 72% 64% at 50% 62%,#000 32%,transparent 100%)}
+@media (min-width:761px){ .portrait::after{--c:calc((100vw - 2 * var(--m)) / 32)} }
+.about>.con{margin-top:14px}
 .say{font-size:clamp(2rem,4.3vw,3.75rem);line-height:1.02;font-weight:400;letter-spacing:-.04em;text-wrap:balance}
 [data-fill] .w{color:var(--faint);transition:color .35s}
 [data-fill] .w.on{color:var(--ink)}
-.cols{display:grid;gap:28px var(--g);margin-top:clamp(36px,4.4vw,64px)}
+.cols{display:grid;gap:28px var(--g);margin-top:clamp(26px,2.8vw,40px)}
 .bio{font-size:clamp(1.0625rem,1.3vw,1.1875rem);line-height:1.42;max-width:31em;text-wrap:pretty}
-.facts>div{display:flex;justify-content:space-between;gap:16px;padding-block:10px;border-top:1px solid var(--line)}
+.facts>div{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding-block:10px;border-top:1px solid var(--line)}
 .facts>div:last-child{border-bottom:1px solid var(--line)}
-.facts dd{font-weight:500}
+.facts dd{font-weight:500;text-align:right}
 @media (min-width:900px){
-  .about>.lab{grid-column:1 / span 4} .about>.con{grid-column:6 / span 7}
-  .cols{grid-template-columns:7fr 5fr}
+  .about>.portrait{grid-column:1 / span 4;width:auto}
+  .about>.con{grid-column:6 / span 7;display:flex;flex-direction:column;justify-content:flex-end;gap:clamp(26px,2.8vw,40px);margin-top:0}
+  .cols{grid-template-columns:7fr 5fr;gap:0 var(--g);margin-top:0;border-block:1px solid var(--line)}
+  .bio{padding-block:9px 16px}
+  .facts{display:grid;grid-auto-rows:1fr}
+  .facts>div{align-items:flex-start}
+  .facts>div:first-child{border-top:0} .facts>div:last-child{border-bottom:0}
+  .facts dt{padding-top:.42em}
 }
+@media (min-width:900px) and (max-width:1099px){ .cols{grid-template-columns:1fr 1fr} }   /* room for the facts on one line each */
 
-/* ── clients: a dark panel, the headline in two corners, the logos between ─ */
-.dark{position:relative;display:grid;grid-template-rows:auto 1fr auto;gap:40px;min-height:min(660px,84vh);margin:var(--sec) var(--m) 0;padding:clamp(22px,3.2vw,48px);border-radius:var(--r);background:var(--night);color:#fff;overflow:hidden}
-.dark .big{font-size:var(--h2);position:relative}
-.dark .end{justify-self:end;text-align:right}
-.dark .mono{color:rgba(255,255,255,.55)}
-.dark::before,.dark::after{content:"";position:absolute;top:0;bottom:0;width:1px;background:rgba(255,255,255,.1)}
-.dark::before{left:33.333%} .dark::after{left:66.666%}
-.marq{position:relative;align-self:center;margin-inline:calc(-1 * clamp(22px,3.2vw,48px));padding-block:28px;border-block:1px solid rgba(255,255,255,.1);overflow:hidden}
-.marq .pin{top:0} .marq .pin:nth-of-type(1){left:33.333%} .marq .pin:nth-of-type(2){left:66.666%}
-.marq .pin:nth-of-type(3){left:33.333%;top:100%} .marq .pin:nth-of-type(4){left:66.666%;top:100%}
+/* ── clients: a light purple strip of logos on the grid ───────────────────
+   2026-11-14 (Werner: "just a simple strip, keep the rectangle pattern behind it"; it was a tall panel with a
+   headline in two corners). The strip is as wide as the hero's timeline, so it is cut into the same 32 squares (16
+   on a phone) and its lines continue the hero's; it is a whole number of squares high, so the pattern is never cut
+   through a square. The label above it is the old headline's words. Later that day (Werner): light purple, not
+   dark, so the logos are ink and the grid's lines violet. */
+.strip{container-type:inline-size;border-radius:var(--r);background:var(--lav);overflow:hidden}
+.marq{--c:3.125cqw;position:relative;display:grid;align-items:center;height:calc(var(--c) * 4);
+  background:linear-gradient(rgba(124,107,255,.24) 1px,transparent 1px) 0 -1px / var(--c) var(--c),linear-gradient(90deg,rgba(124,107,255,.24) 1px,transparent 1px) -1px 0 / var(--c) var(--c)}
+@media (max-width:760px){ .marq{--c:6.25cqw} }
+@supports (width:round(nearest,1px,1px)){ .marq{height:round(nearest,170px,var(--c))} }
+.belt{overflow:hidden}
 .track{display:flex;align-items:center;width:max-content;animation:marq 46s linear infinite}
 .marq:hover .track{animation-play-state:paused}
-.track img{flex:none;height:calc(var(--h) * 1.15px);width:auto;margin-right:clamp(56px,6.5vw,104px);filter:brightness(0) invert(1)}
+.track img{flex:none;height:calc(var(--h) * 1.15px);width:auto;margin-right:clamp(56px,6.5vw,104px);filter:brightness(0);opacity:.9}
 @keyframes marq{to{transform:translateX(-50%)}}
 
-/* ── services and experience: rows on hairlines ─────────────────────────── */
-.svc li{display:grid;grid-template-columns:minmax(0,1fr);gap:4px var(--g);align-items:baseline;padding-block:clamp(14px,1.7vw,24px);border-top:1px solid var(--line);color:var(--faint);transition:color .4s var(--out)}
-.svc li:last-child{border-bottom:1px solid var(--line)}
-.svc li.is-lit,.svc li:hover{color:var(--ink)}
+/* ── skills: big rows on hairlines; a row opens on a click (the live site's services, one open at a time) ──
+   The row nearest the middle of the screen is lit (js); an open row stays lit. Without scripts every row is dark
+   and open. */
+.svc>li{border-top:1px solid var(--line);transition:color .4s var(--out)}
+.svc>li:last-child{border-bottom:1px solid var(--line)}
+.js .svc>li{color:var(--faint)}
+.js .svc>li.is-lit,.js .svc>li:hover,.js .svc>li.is-open,.js .svc>li:focus-within{color:var(--ink)}
+.svc .head{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px var(--g);align-items:center;width:100%;padding-block:clamp(14px,1.7vw,24px);text-align:left}
+.svc .n,.svc .k,.svc .v{grid-column:1}
 .svc .k{font-size:var(--h2);font-weight:400;letter-spacing:-.045em;line-height:1}
-.svc li.is-lit .k{font-weight:640}
+.svc>li.is-lit .k,.svc>li.is-open .k{font-weight:640}
 .svc .n,.svc .v{color:inherit}
-.xp li{display:grid;grid-template-columns:minmax(0,1fr);gap:2px var(--g);align-items:baseline;padding-block:14px;border-top:1px solid var(--line)}
-.xp li:last-child{border-bottom:1px solid var(--line)}
-.xp .k{font-size:1.25rem;font-weight:600;letter-spacing:-.02em}
-.xp .v{color:var(--grey)}
+.svc .tog{grid-column:2;grid-row:1 / span 3;position:relative;width:44px;height:44px;border-radius:50%;border:1px solid var(--line);color:var(--ink);transition:background .25s var(--out),border-color .25s var(--out),color .25s var(--out),transform .5s var(--out)}
+.svc .tog i{position:absolute;left:50%;top:50%;width:14px;height:2px;margin:-1px -7px;border-radius:1px;background:currentColor;transition:transform .5s var(--out)}
+.svc .tog i:last-child{transform:rotate(90deg)}
+.svc .head:hover .tog,.svc>li.is-open .tog{background:var(--stop);border-color:var(--stop);color:#fff}
+.svc>li.is-open .tog i:last-child{transform:none}
+html:not(.js) .svc .tog{display:none}
+.svc .more{display:grid;grid-template-rows:1fr}
+.js .svc .more{grid-template-rows:0fr;transition:grid-template-rows .6s var(--out)}
+.js .svc>li.is-open .more{grid-template-rows:1fr}
+.svc .more>.in{min-height:0;overflow:hidden}
+.js .svc .more>.in{visibility:hidden;transition:visibility 0s .6s}
+.js .svc>li.is-open .more>.in{visibility:visible;transition-delay:0s}
+.svc .body{display:grid;gap:clamp(20px,2.2vw,30px) var(--g);padding-block:6px clamp(26px,3vw,44px);color:var(--ink)}
+.svc .txt{display:grid;gap:.8em;font-size:clamp(1.0625rem,1.3vw,1.1875rem);line-height:1.42;max-width:33em;text-wrap:pretty}
+.svc .txt p+p{color:var(--grey)}
+/* 2026-11-14 (Werner): the list in two rows of three (on a phone three rows of two), the text under it. build.mjs
+   fills the list up to six, so every row's rule runs the whole width; an empty cell has no square */
+.svc .tags{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));margin-top:0;border-bottom:1px solid var(--line)}
+.svc .tags li{min-width:0;padding-right:12px}
+.svc .tags li:empty::before{content:none}
 @media (min-width:900px){
-  .svc li,.xp li{grid-template-columns:repeat(12,minmax(0,1fr))}
-  .svc .n{grid-column:1 / span 1} .svc .k{grid-column:2 / span 7} .svc .v{grid-column:9 / span 4}
-  .xp .y{grid-column:1 / span 3} .xp .k{grid-column:4 / span 4} .xp .v{grid-column:8 / span 5}
+  .svc .head{grid-template-columns:repeat(12,minmax(0,1fr));align-items:baseline}
+  .svc .n{grid-column:1 / span 1} .svc .k{grid-column:2 / span 7} .svc .v{grid-column:9 / span 3}
+  .svc .tog{grid-column:12;grid-row:1;justify-self:end;align-self:center}
+  .svc .body{grid-template-columns:repeat(12,minmax(0,1fr));align-items:start}
+  .svc .tags{grid-column:2 / -1;grid-template-columns:repeat(3,minmax(0,1fr))} .svc .txt{grid-column:2 / span 7}
+}
+
+/* ── experience: a timeline, where skills are rows ─────────────────────────
+   2026-11-14 (Werner: make it look different from skills). The hero's ruler again: a line from edge to edge, a tick
+   where each job starts, the violet dot resting on now. On a wide screen it reads left to right, 2015 to now; the
+   list itself runs newest first (as a CV does), which is how a phone shows it, down a line at the left. */
+/* the CV: under the list, which on a wide screen is under BCG, the first column (2026-11-14, Werner); on a phone it
+   lines up with the text beside the line */
+.xp-cv{margin-top:30px;padding-left:22px}
+@media (min-width:900px){ .xp-cv{margin-top:clamp(26px,2.6vw,36px);padding-left:0} }
+.pill.dl:hover .arr{transform:translateY(2px)}                          /* a download: its arrow dips, where the others turn */
+.xp{position:relative;display:grid;gap:30px;padding-left:22px;border-left:1px solid var(--stop)}
+.xp::after{content:"";position:absolute;left:0;top:0;width:13px;height:13px;margin:-6.5px;border-radius:50%;background:var(--stop)}
+.xp li{position:relative}
+.xp li::before{content:"";position:absolute;left:-22px;top:.5em;width:10px;height:1px;background:var(--ink)}
+.xp .y{color:var(--ink)}
+.xp .k{margin-top:8px;font-size:clamp(1.5rem,2.2vw,2rem);font-weight:640;letter-spacing:-.035em;line-height:1.02;text-wrap:balance}
+.xp .v{margin-top:10px;color:var(--grey);text-wrap:pretty}
+/* 2026-11-14 (Werner): where the list runs down the page and there is the width for it, the role stands beside the
+   company, each in its own column, so the roles line up under one another. That starts at 700px, the first width
+   at which BCG's long role still fits on one line beside its company (below that it has the whole line to itself,
+   under the company). On a wide screen the four columns are too narrow for either: there the role stays below */
+@media (min-width:700px) and (max-width:899px){
+  .xp li{display:grid;grid-template-columns:minmax(0,14em) minmax(0,1fr);column-gap:20px;align-items:baseline}
+  .xp .y{grid-column:1 / -1}
+  .xp .v{margin-top:0}
+}
+@media (min-width:900px){
+  .xp{display:flex;flex-direction:row-reverse;gap:var(--g);margin-inline:calc(-1 * var(--m));padding:0 var(--m);border-left:0;border-top:1px solid var(--line)}
+  .xp::before{content:"";position:absolute;left:0;top:-1px;width:calc(100% - var(--m));height:1px;background:var(--stop);transform-origin:0 50%}
+  .xp::after{left:calc(100% - var(--m))}
+  .xp li{flex:1 1 0;min-width:0;padding:26px clamp(0px,1.4vw,24px) 0 0}
+  .xp li::before{left:0;top:0;width:1px;height:10px}
 }
 
 /* ── contact: the violet panel ──────────────────────────────────────────── */
 .cta{display:grid;gap:clamp(36px,5vw,72px);margin:var(--sec) var(--m) 0;padding:clamp(22px,3.2vw,48px);border-radius:var(--r);background:var(--stop);color:var(--night)}
 .cta .mono{color:rgba(21,17,31,.7)}
-.cta .big{font-size:var(--h2);max-width:14em}
+.cta .big{font-size:var(--h2);line-height:1.04;max-width:14em}   /* 2026-11-14 (Werner): a little more air between its three lines; it was .94 */
 .cta .stop{background:var(--night)}
 .cta .row{display:flex;flex-wrap:wrap;align-items:center;gap:14px 24px}
 .cta .pill:hover{background:#fff;color:var(--ink)} .cta .pill:hover .arr{background:var(--ink);color:#fff}
@@ -205,7 +310,10 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 .foot .row{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px 22px;padding-bottom:16px;border-bottom:1px solid var(--line)}
 .foot .row span{display:flex;flex-wrap:wrap;gap:0 22px}
 .foot a:hover{color:var(--ink)}
-.mark{display:block;font-size:30.5vw;font-weight:640;letter-spacing:-.075em;line-height:.8;margin:.05em 0 -.1em -.04em;white-space:nowrap;transform:translateY(calc((1 - var(--f,1)) * 34%))}
+/* 2026-11-14 (Werner): the whole name, not "Werner" alone. With its full stop and the wider word spaces (the tight
+   letter-spacing closes them otherwise) it is 8.26em wide, so this size makes it run from margin to margin at any
+   width */
+.mark{display:block;font-size:calc((100vw - 2 * var(--m)) / 8.4);word-spacing:.09em;font-weight:640;letter-spacing:-.075em;line-height:.8;margin:.05em 0 -.1em -.04em;white-space:nowrap;transform:translateY(calc((1 - var(--f,1)) * 34%))}
 .mark .stop{width:.15em;height:.15em}
 
 /* ── a case page ────────────────────────────────────────────────────────── */
@@ -274,6 +382,17 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
   .js .in .pin,.js .pin.in{transform:none}
   .js .stage{border-color:transparent;background:linear-gradient(var(--line),var(--line)) top left / var(--lx,0%) 1px no-repeat,linear-gradient(var(--line),var(--line)) bottom right / var(--lx,0%) 1px no-repeat;transition:--lx 1.2s var(--out)}
   .js .stage.in{--lx:100%}
+  /* experience: the line runs out to now, the dot with it, and each job comes in as the line passes its tick */
+  .js .xp li{opacity:0;transform:translateY(18px);transition:opacity .8s var(--out) calc(var(--i) * 260ms + 200ms),transform .8s var(--out) calc(var(--i) * 260ms + 200ms)}
+  .js .xp.in li{opacity:1;transform:none}
+  .js .xp::after{transform:scale(0);transition:transform .6s var(--back) 1.2s}
+  .js .xp.in::after{transform:none}
+  @media (min-width:900px){
+    .js .xp::before{transform:scaleX(0);transition:transform 1.5s var(--out)}
+    .js .xp.in::before{transform:none}
+    .js .xp::after{left:var(--m);transform:none;transition:left 1.5s var(--out)}
+    .js .xp.in::after{left:calc(100% - var(--m))}
+  }
   @view-transition{navigation:auto}
 }
 @property --lx{syntax:"<percentage>";inherits:false;initial-value:0%}
