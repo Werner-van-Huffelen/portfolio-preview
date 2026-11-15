@@ -60,17 +60,53 @@
     cards.forEach(function (c) { tall.observe(c); });
   }
 
-  /* 3b. skills: a row opens on a click, one at a time; all start closed */
-  rows.forEach(function (li) {
-    var b = li.querySelector('.head');
-    if (b) b.addEventListener('click', function () {
-      var open = !li.classList.contains('is-open');
-      rows.forEach(function (o) {
-        var on = o === li && open, h = o.querySelector('.head');
-        o.classList.toggle('is-open', on); if (h) h.setAttribute('aria-expanded', String(on));
-      });
-      frame();
+  /* 3b. skills: one open at a time, all start closed. With a mouse a row opens when the pointer has rested on it for a
+        moment (2026-11-15, Werner: "expand on hover"), and stays open until another one is entered: leaving the list
+        does not close it, so text being read does not vanish. A tap opens or closes a row as before, and so does the
+        keyboard. A mouse click only opens: it does not undo what the hover has just done. While rows are moving (the
+        others slide as one closes and one opens) the pointer is ignored, so they cannot set one another off. */
+  var canHover = false, quiet = 0;
+  try { canHover = matchMedia('(hover: hover) and (pointer: fine)').matches; } catch (e) { /* touch only */ }
+  function openRow(li, open) {
+    rows.forEach(function (o) {
+      var on = o === li && open, h = o.querySelector('.head');
+      o.classList.toggle('is-open', on); if (h) h.setAttribute('aria-expanded', String(on));
     });
+    quiet = Date.now() + 750;
+    frame();
+  }
+  rows.forEach(function (li) {
+    var b = li.querySelector('.head'), wait = 0;
+    if (!b) return;
+    b.addEventListener('click', function (e) {
+      if (canHover && e.detail > 0) { if (!li.classList.contains('is-open')) openRow(li, true); return; }
+      openRow(li, !li.classList.contains('is-open'));
+    });
+    if (!canHover) return;
+    li.addEventListener('pointermove', function (e) {
+      if (e.pointerType !== 'mouse' || wait || li.classList.contains('is-open') || Date.now() < quiet) return;
+      wait = setTimeout(function () { wait = 0; if (Date.now() >= quiet && li.matches(':hover')) openRow(li, true); }, 140);
+    });
+    li.addEventListener('pointerleave', function () { clearTimeout(wait); wait = 0; });
+  });
+
+  /* 3c. about: the bio's box is as many grid squares tall as its text needs, so that the rules around it fall on the
+        grid's lines (css: --n; a square is 1/32 of the content width). Measured at its natural height, then rounded up. */
+  $('.about').forEach(function (a) {
+    var bio = a.querySelector('.bio'), queued = false;
+    if (!bio) return;
+    function snap() {
+      queued = false;
+      if (innerWidth < 900) { bio.style.removeProperty('--n'); return; }
+      var cs = getComputedStyle(a), c = (a.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)) / 32;
+      if (!(c > 0)) return;
+      bio.style.setProperty('--n', '0'); bio.style.alignSelf = 'start';
+      var n = Math.ceil(bio.offsetHeight / c - 0.02);
+      bio.style.alignSelf = ''; bio.style.setProperty('--n', String(n));
+    }
+    var later = function () { if (!queued) { queued = true; requestAnimationFrame(snap); } };
+    snap(); addEventListener('resize', later);
+    if (d.fonts && d.fonts.ready) d.fonts.ready.then(snap);
   });
 
   /* 4. numbers count up to their value */

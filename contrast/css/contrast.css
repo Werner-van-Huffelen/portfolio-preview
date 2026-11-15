@@ -117,10 +117,10 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 .card .hd{margin-top:auto}                                               /* 2026-11-14 (Werner): name and line sit right above the list, not under the counter */
 .tags li{display:flex;align-items:center;gap:12px;padding-block:11px;border-top:1px solid var(--line);font-size:.9375rem}
 .tags li::before{content:"";width:6px;height:6px;background:var(--ink)}
-/* a card's tags in two lists, the kind of product and the disciplines: side by side where the card's text column is wide
-   enough for both (on a phone and in the 900 to 1099px band, where it is not, one list under the other) */
-.taglists{display:grid;gap:0 clamp(16px,2vw,28px)}
-@media (min-width:520px) and (max-width:899px),(min-width:1100px){ .taglists{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} }
+/* a card's tags: the skills the case used, from the CV's list and the Skills section's. Down one list; where the card's text
+   column is wide enough (on a phone and in the 900 to 1099px band, where it is not, it stays one list), in two columns of three */
+.card .tags{display:grid;gap:0 clamp(16px,2vw,28px)}
+@media (min-width:520px) and (max-width:899px),(min-width:1100px){ .card .tags:not(.few){grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:repeat(3,auto);grid-auto-flow:column} }
 .card .foot-row{display:flex;align-items:center;justify-content:space-between}
 .card:hover .go{background:var(--stop);border-color:var(--stop);color:#fff}
 .panel{position:relative;display:flex;flex-direction:column;min-height:300px;padding:clamp(16px,2vw,28px);background:var(--tint,var(--mat))}
@@ -166,7 +166,8 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
    2026-11-14 (Werner: alignment and spacing): the label has its own row, and under it the portrait, the statement
    with the bio, and the facts stand in three columns (below). The statement stands right above the bio (Werner,
    later that day: "closer to the text below"). The portrait is square and grows with the text when that is taller. */
-.about{row-gap:18px}
+.about{row-gap:18px;container-type:inline-size;--c:calc(100cqw / 16)}   /* one grid square: 1/16 of the content width on a phone, 1/32 from 761px, as everywhere on the page; the portrait's grid and the rules beside it are drawn in it (cqw is read where it is used, in the children) */
+@media (min-width:761px){ .about{--c:calc(100cqw / 32)} }
 .about>*{grid-column:1 / -1}
 /* 2026-11-14 (Werner: the portrait as on the CV, his pick there): the cut-out alone, standing on a rule with a soft
    violet light behind it. It was a violet tile. The rule is the one that closes the facts, carried on under him */
@@ -175,40 +176,51 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 .portrait::before{content:"";display:block;padding-top:100%}
 .portrait img{position:absolute;inset:0;z-index:1;width:100%;height:100%;object-fit:contain;object-position:50% 100%}
 /* the grid behind him (Werner, later that day): the page's own squares, counted from the left margin and up from the
-   rule he stands on, fading out towards the frame's edges as the hero's grid does */
-.portrait::after{content:"";position:absolute;inset:0;--c:calc((100vw - 2 * var(--m)) / 16);
-  background:linear-gradient(var(--line) 1px,transparent 1px) 0 100% / var(--c) var(--c),linear-gradient(90deg,var(--line) 1px,transparent 1px) 0 100% / var(--c) var(--c);
+   rule he stands on, fading out towards the frame's edges as the hero's grid does. The horizontal lines sit 1px lower
+   than the box's padding edge, so that they fall where the 1px rules beside him do (a rule is drawn from its top edge) */
+.portrait::after{content:"";position:absolute;inset:0;
+  background:linear-gradient(var(--line) 1px,transparent 1px) 0 calc(100% + 1px) / var(--c) var(--c),linear-gradient(90deg,var(--line) 1px,transparent 1px) 0 100% / var(--c) var(--c);
   -webkit-mask-image:radial-gradient(ellipse 72% 64% at 50% 62%,#000 32%,transparent 100%);mask-image:radial-gradient(ellipse 72% 64% at 50% 62%,#000 32%,transparent 100%)}
-@media (min-width:761px){ .portrait::after{--c:calc((100vw - 2 * var(--m)) / 32)} }
 .about>.say{margin-top:14px}
-.say{font-size:clamp(2rem,4.3vw,3.75rem);line-height:1.02;font-weight:400;letter-spacing:-.04em;text-wrap:balance}
+.say{font-size:clamp(1.8rem,8vw,4.5rem);line-height:1.02;font-weight:400;letter-spacing:-.04em;text-wrap:balance}   /* below 900px (the desktop rule below sets its own): three balanced lines, set to fill the width (Werner, 2026-11-15: "fill out text") */
+@media (max-width:899px){ .about>.portrait{justify-self:center} }
+@media (min-width:600px) and (max-width:899px){ .say{font-size:5.3vw} }   /* two lines from 600px, filling the width; on a phone it would be hardly bigger than the bio, so there it stays three lines */                          /* and the portrait in the middle of the page */
 [data-fill] .w{color:var(--faint);transition:color .35s}
 [data-fill] .w.on{color:var(--ink)}
-.bio{margin-top:clamp(8px,1vw,22px);font-size:clamp(1.0625rem,1.3vw,1.1875rem);line-height:1.42;max-width:31em;text-wrap:pretty}
+.bio{margin-top:clamp(8px,1vw,22px);font-size:clamp(1.125rem,2.7vw,1.625rem);line-height:1.42;text-wrap:pretty}   /* below 900px: the whole width, a size up from the desktop's (the desktop rule below sets its own size and width) */
 .facts{margin-top:10px}
 .facts>div{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding-block:10px;border-top:1px solid var(--line)}
 .facts>div:last-child{border-bottom:1px solid var(--line)}
 .facts dd{font-weight:500;text-align:right}
 /* 2026-11-14 (Werner: "30% / 40% / 30% columns with equal spacing between"): from 900px the section is three columns,
    the portrait, the statement over the bio, the facts, in the proportion 3 : 4 : 3 of the width the two equal gaps
-   leave (percentages of the whole would leave no room for the gaps). The bio and the facts share a row, so their
-   rules meet at the top and at the bottom, and the bottom one is the rule the portrait stands on. The statement is
-   set to fit its column and sits at the foot of the row above, close to the bio. */
+   leave (percentages of the whole would leave no room for the gaps). The bio and the facts share a row, which ends
+   on the rule the portrait stands on. The statement is set to fit its column and sits at the foot of the row above.
+   2026-11-15 (Werner: "all the lines aligned with the grid on the image, the text should even out in terms of
+   spacing"): every rule beside the portrait is a whole number of squares above the one it stands on, so each one
+   continues a line of the grid behind him. A fact is a square high (two where its label sits above its value), so
+   its rules are grid lines; the bio's box is as many squares as its text needs (js/contrast.js sets --n, the number
+   of squares), with the text centred in it, so the air above and below it is equal; the statement stands one
+   square above the bio's rule.
+   2026-11-15 (Werner, a screenshot of the bio and the facts: "this section needs to be aligned"): the facts had been left
+   at the foot of the row, a square high each, so their top rule stood lower than the bio's. They now fill the row, as the
+   bio's box does: the two top rules and the two foot rules are the same lines. The rules between the facts divide the
+   height evenly, so they sit on the grid's lines where the height is a multiple of four squares (or each fact is a
+   whole number of them) and in between the lines otherwise. */
 @media (min-width:900px){
-  .about{--ag:clamp(24px,4vw,64px);grid-template-columns:3fr 4fr 3fr;column-gap:var(--ag);row-gap:0}
+  .about{--ag:clamp(24px,4vw,64px);grid-template-columns:3fr 4fr 3fr;grid-template-rows:auto 1fr auto;column-gap:var(--ag);row-gap:0}   /* the statement's row is the flexible one: whatever the portrait's square asks for beyond the bio's row goes there, so the bio's row stays whole squares */
   .about>h2{margin-bottom:18px}
   .about>.portrait{grid-column:1;grid-row:2 / span 2;width:auto}
-  .about>.say{grid-column:2;grid-row:2;align-self:end;margin:0;padding-bottom:clamp(26px,2.8vw,40px);font-size:clamp(1.75rem,3.1vw,3.1rem)}
-  .about>.bio{grid-column:2;grid-row:3;margin:0;max-width:none;padding-block:9px 16px;border-block:1px solid var(--line)}
-  .about>.facts{grid-column:3;grid-row:3;margin:0;display:grid;grid-auto-rows:1fr;border-block:1px solid var(--line)}
-  .facts>div{align-items:flex-start}
-  .facts>div:first-child{border-top:0} .facts>div:last-child{border-bottom:0}
-  .facts dt{padding-top:.42em}
+  .about>.say{grid-column:2 / span 2;grid-row:2;align-self:end;margin:0;padding-bottom:var(--c);font-size:clamp(1.75rem,3.75vw,6.25rem)}   /* 2026-11-15 (Werner): the statement runs over the bio's column and the facts'; first set large on three lines, then ("change the about headline to 2 lines, and reduce the font size to fill out 2 lines") on two balanced lines, the size at which they fill the two columns (the text is about 33 times the font size wide) */
+  .about>.bio{grid-column:2;grid-row:3;margin:0;font-size:clamp(1.0625rem,1.3vw,1.1875rem);display:flex;flex-direction:column;justify-content:center;min-height:calc(var(--n,5) * var(--c));padding-block:calc(var(--c) * .28);border-block:1px solid var(--line)}
+  .about>.facts{grid-column:3;grid-row:3;margin:0;display:grid;grid-template-rows:repeat(4,minmax(var(--c),1fr))}   /* as tall as the bio's box (the row), so their rules meet at the top as well as at the foot; each fact at least a square */
+  .facts>div{align-items:center;padding-block:0}
 }
-/* a narrower facts column: the label above its value, which then has the whole column */
-@media (min-width:900px) and (max-width:1199px){
-  .facts>div{flex-direction:column;gap:2px;align-items:flex-start}
-  .facts dt{padding-top:0} .facts dd{text-align:left}
+/* a narrower facts column (under about 250px: below 1000px): the label above its value, which then has the whole column */
+@media (min-width:900px) and (max-width:999px){
+  .about>.facts{grid-template-rows:repeat(4,minmax(calc(var(--c) * 2),1fr))}
+  .facts>div{flex-direction:column;justify-content:center;gap:2px;align-items:flex-start}
+  .facts dd{text-align:left}
 }
 
 /* ── clients: a light purple strip of logos on the grid ───────────────────

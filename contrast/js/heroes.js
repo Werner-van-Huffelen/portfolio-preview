@@ -231,6 +231,60 @@
     }
     sec.addEventListener('pointerleave', rest);
     addEventListener('resize', rest);                                      /* the squares have moved under the pointer */
+    /* The small dots. The hero's grid has pins, violet dots where two of its lines cross; they now come and go:
+       five at a time, each on a crossing of its own, rising over 3s, resting a few seconds, fading out over 3s, then
+       another rises somewhere else (2026-11-15, Werner: "randomly fade in and out on different quadrants, very subtle
+       and slowly"). They keep off the headline, the sentence, the portrait and the timeline's own rows, and inside the
+       part of the grid its mask leaves visible. With reduced motion the two fixed pins stay as they were (css). */
+    if (!still) (function () {
+      var seen = true, used = {}, live = [], N = 5;
+      function box(el) { if (!el) return null; var r = d.createRange(); r.selectNodeContents(el); var b = r.getBoundingClientRect(); return b.width ? b : null; }
+      function spot() {
+        var s = size(); if (!s.c) return null;
+        var sr = sec.getBoundingClientRect(), line = s.r.top + 1200, keep = [], pad = s.c * 0.55, cols = Math.floor((s.r.width - 2 * s.m) / s.c);
+        /* the headline's own words (its lines are a block as wide as the page, and the rolling word's column reaches past its window) */
+        var h1 = sec.querySelector('h1'), roll = h1 && h1.querySelector('.roll'), lead = h1 && h1.querySelector('span[aria-hidden]');
+        var zero = lead && lead.firstChild && lead.firstChild.nodeType === 3 ? (function () { var r = d.createRange(); r.selectNodeContents(lead.firstChild); return r.getBoundingClientRect(); })() : null;
+        [zero, roll && roll.getBoundingClientRect(), box(sec.querySelector('.lede'))].forEach(function (b) { if (b && b.width) keep.push(b); });
+        /* the portrait: its square is mostly empty, so only where the person is (the middle for the head, the whole width for the shoulders) */
+        var w = who && who.getBoundingClientRect();
+        if (w && w.width) { keep.push({ left: w.left + w.width * 0.22, right: w.right - w.width * 0.22, top: w.top, bottom: w.bottom }, { left: w.left, right: w.right, top: w.top + w.height * 0.66, bottom: w.bottom }); }
+        var jmin = Math.ceil((sr.top + 96 - line) / s.c), jmax = Math.floor((sr.bottom - 36 - line) / s.c), rows = {}, free = [];
+        for (var j = jmin; j <= jmax; j++) {
+          if (j === 0 || j === 1) continue;
+          for (var i = 0; i <= cols; i++) {
+            var k = i + ',' + j, x = s.r.left + s.m + i * s.c, y = line + j * s.c;
+            if (used[k]) continue;
+            var dx = (x - s.r.left - 0.56 * s.r.width) / (0.74 * s.r.width), dy = (y - line) / 720;
+            if (dx * dx + dy * dy > 0.72 * 0.72) continue;                      /* where the grid's mask is all but gone */
+            if (keep.some(function (b) { return x > b.left - pad && x < b.right + pad && y > b.top - pad && y < b.bottom + pad; })) continue;
+            if (live.some(function (o) { return Math.abs(o.x - x) < s.c * 4 && Math.abs(o.y - y) < s.c * 4; })) continue;     /* apart from the others */
+            (rows[j] = rows[j] || []).push({ k: k, x: x, y: y, left: s.m + i * s.c, top: 1200 + j * s.c });
+          }
+        }
+        free = Object.keys(rows);
+        if (free.length) { var row = rows[free[Math.floor(Math.random() * free.length)]]; return row[Math.floor(Math.random() * row.length)]; }   /* a row first, so a free row with few places is as likely as a wide one */
+        return null;
+      }
+      function drop(o) { if (o.el.parentNode) o.el.parentNode.removeChild(o.el); delete used[o.k]; live = live.filter(function (e) { return e !== o; }); }
+      function run(wait) {
+        setTimeout(function () {
+          if (!seen || d.hidden) return run(2000);
+          var p = spot(); if (!p) return run(1500);
+          var el = d.createElement('i'), hold = 3200 + 1800 + Math.random() * 2600;
+          el.className = 'pin wink'; el.style.left = p.left + 'px'; el.style.top = p.top + 'px';
+          var o = { el: el, k: p.k, x: p.x, y: p.y };
+          used[p.k] = 1; live.push(o); grid.appendChild(el);
+          void el.offsetWidth; el.classList.add('up');
+          setTimeout(function () { el.classList.remove('up'); }, hold);
+          setTimeout(function () { drop(o); run(500 + Math.random() * 2500); }, hold + 3400);
+        }, wait);
+      }
+      if ('IntersectionObserver' in window) new IntersectionObserver(function (es) { seen = es[es.length - 1].isIntersecting; }).observe(sec);
+      addEventListener('resize', function () { live.slice().forEach(drop); });
+      for (var n = 0; n < N; n++) run(1400 + n * 1700 + Math.random() * 900);       /* they start one after another, over the first seconds */
+    })();
+
     /* the dot's trail runs with the timeline (start calls this, and Replay with it), for as long as the dot travels */
     sec._follow = function () {
       if (!dot || still) return;
@@ -239,7 +293,7 @@
         if (me !== run || t - t0 > 6200) return;
         var s = size(), b = dot.getBoundingClientRect(), i = Math.floor((b.left + b.width / 2 - s.r.left - s.m) / s.c + 0.001);
         if (s.c && i !== col) { col = i; light(i, -1, s); light(i, 0, s); }
-        if (!swept && t - t0 > 5200) { swept = true; wave(me); }            /* .5s + three legs + .8s: the dot is on Shipped */
+        if (!swept && t - t0 > 5050) { swept = true; wave(me); }            /* .5s + three legs + .65s: the dot is on Shipped */
         requestAnimationFrame(step);
       })(t0);
     };
